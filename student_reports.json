@@ -1,0 +1,177 @@
+[
+  {
+    "id": "rep_mock_1",
+    "user_name": "Aarav Sharma",
+    "user_age": "20",
+    "user_location": "IIBM Patna",
+    "timestamp": "2026-06-05T14:10:00Z",
+    "language": "en",
+    "overall_status": "High Concern",
+    "severity_score": 8,
+    "mood_summary": "The student exhibits symptoms of severe academic stress, fatigue, and feelings of hopelessness.",
+    "speech_analysis": "The student spoke at a significantly slow pace (average 72 WPM) with frequent long pauses and hesitations (14 hesitations detected). The voice volume was consistently low, suggesting fatigue and low mood.",
+    "face_analysis": "Live camera analysis detected persistent expressions of sadness and fear. Micro-expressions showed high tension around the brow area.",
+    "key_concerns": [
+      "Severe sleep disturbance (sleeping less than 4 hours a night)",
+      "High academic anxiety due to upcoming semester exams",
+      "Feelings of hopelessness and loneliness in the campus hostel"
+    ],
+    "positive_factors": [
+      "Strong self-awareness and willingness to seek help",
+      "Has a supportive family member in Patna"
+    ],
+    "user_friendly_summary": "Aarav, thank you for sharing how you feel. It is completely understandable to feel overwhelmed with exams and adjusting to hostel life. Remember, you don't have to carry this heavy load all by yourself. There are people who care and want to support you through this phase.",
+    "needs_professional_help": true,
+    "professional_recommendation": "We highly recommend scheduling a session with Shivangi Ma'am. Talking through your academic stress and sleep issues with a counselor will help you develop effective coping strategies and restore your peace of mind.",
+    "transcript": [
+      {
+        "role": "assistant",
+        "text": "Hello! I'm Aura, your AI wellness counselor. I'm so glad you're here today. Could you start by telling me your name?"
+      },
+      {
+        "role": "user",
+        "text": "Hey, I am Aarav."
+      },
+      {
+        "role": "assistant",
+        "text": "It's wonderful to meet you, Aarav. May I ask how old you are and where you are from?"
+      },
+      {
+        "role": "user",
+        "text": "I am 20. I study here at IIBM Patna, but my home is in Ranchi."
+      },
+      {
+        "role": "assistant",
+        "text": "Thanks for sharing, Aarav. How have you been feeling emotionally lately?"
+      },
+      {
+        "role": "user",
+        "text": "To be honest, I've been feeling extremely down and exhausted. Exams are coming, and I can't sleep at all."
+      },
+      {
+        "role": "assistant",
+        "text": "I hear you, Aarav. Sleep is so important for our wellbeing. How many hours of sleep have you been getting, and does it feel disturbed?"
+      },
+      {
+        "role": "user",
+        "text": "Hardly 3 or 4 hours. I just lie awake worrying about failing. I feel hopeless."
+      },
+      {
+        "role": "assistant",
+        "text": "That sounds incredibly draining, Aarav. Apart from sleep, have you found yourself losing interest in activities you usually enjoy?"
+      },
+      {
+        "role": "user",
+        "text": "Yeah, I stopped playing football with my friends. I just stay in my room. I feel very lonely."
+      },
+      {
+        "role": "assistant",
+        "text": "Thank you so much for sharing with me today, Aarav. I now have everything I need to prepare your personalized wellness report."
+      }
+    ]
+  },
+  {
+    "id": "rep_mock_2",
+    "user_name": "Priya Kumari",
+    "user_age": "21",
+    "user_location": "Patna Science College",
+    "timestamp": "2026-06-05T15:20:00Z",
+    "language": "hi",
+    "overall_status": "Healthy",
+    "severity_score": 2,
+    "mood_summary": "The student is emotionally stable, expressing normal levels of situational stress but maintains a healthy outlook and active social connections.",
+    "speech_analysis": "Spoke at a fluid and normal pace (118 WPM) with very few hesitations. Clear articulation, confident vocal volume, and warm inflection in Hindi.",
+    "face_analysis": "Predominantly happy and neutral facial expressions detected. Smiling was observed during positive conversational cues.",
+    "key_concerns": [
+      "Slight anxiety about upcoming presentation, but managed well"
+    ],
+    "positive_factors": [
+      "Active social support system",
+      "Regular exercise and hobbies",
+      "Excellent coping mechanisms"
+    ],
+    "user_friendly_summary": "Priya, it is wonderful to see how well you are managing your wellbeing! Your active routine and connection with friends are amazing strengths. Keep doing what you are doing, and take brief breaks when preparing for presentations.",
+    "needs_professional_help": false,
+    "professional_recommendation": "You are doing a great job of taking care of your mental wellbeing. Keep practicing your self-care routines, and don't hesitate to reach out if things get stressful in the future.",
+    "transcript": [
+      {
+        "role": "assistant",
+        "text": "नमस्ते! मैं ऑरा हूँ, आपकी AI वेलनेस काउंसलर। आज आपसे मिलकर बहुत खुशी हुई। क्या आप मुझे अपना नाम बता सकते हैं?"
+      },
+      {
+        "role": "user",
+        "text": "नमस्ते ऑरा, मेरा नाम प्रिया है।"
+      },
+      {
+        "role": "assistant",
+        "text": "प्रिया, आपसे मिलकर बहुत अच्छा लगा। क्या मैं जान सकती हूँ कि आपकी उम्र क्या है और आप कहाँ से हैं?"
+      },
+      {
+        "role": "user",
+        "text": "मैं 21 साल की हूँ और पटना साइंस कॉलेज में पढ़ती हूँ।"
+      },
+      {
+        "role": "assistant",
+        "text": "धन्यवाद प्रिया। पिछले कुछ दिनों में आप भावनात्मक रूप से कैसा महसूस कर रही हैं?"
+      },
+      {
+        "role": "user",
+        "text": "मैं काफी अच्छी हूँ। बस थोड़ा कॉलेज प्रेजेंटेशन को लेकर स्ट्रेस है, पर बाकी सब बढ़िया है।"
+      },
+      {
+        "role": "assistant",
+        "text": "यह जानकर खुशी हुई कि आप सामान्यतः अच्छा महसूस कर रही हैं। अपनी पढ़ाई और दैनिक जीवन में ध्यान लगाने में कोई परेशानी तो नहीं हो रही?"
+      },
+      {
+        "role": "user",
+        "text": "नहीं, बिल्कुल नहीं। मैं रोज सुबह योग करती हूँ और अपने दोस्तों से भी रोज़ बात करती हूँ।"
+      },
+      {
+        "role": "assistant",
+        "text": "बहुत बढ़िया, प्रिया। आज मेरे साथ बातचीत करने के लिए बहुत-बहुत धन्यवाद। अब मेरे पास आपकी वेलनेस रिपोर्ट तैयार करने के लिए पर्याप्त जानकारी है।"
+      }
+    ]
+  },
+  {
+    "overall_status": "Moderate Concern",
+    "severity_score": 4,
+    "user_name": "Amit",
+    "user_age": "Unknown",
+    "user_location": "IIBM Patna",
+    "mood_summary": "Amit seems to be experiencing a mix of emotions, including anger and happiness, but also a neutral tone, suggesting a complex emotional state.",
+    "speech_analysis": "Amit's speech was relatively slow, averaging 34 WPM, which may indicate some level of anxiety or nervousness. However, he didn't exhibit any significant hesitations, which is a positive sign. His vocal volume was also relatively soft, which could suggest some level of emotional vulnerability.",
+    "face_analysis": "Amit's facial expressions revealed a mix of emotions, including anger, happiness, and neutrality, which may indicate some level of emotional turmoil.",
+    "key_concerns": [
+      "anger",
+      "emotional turmoil"
+    ],
+    "positive_factors": [
+      "happiness",
+      "openness in conversation"
+    ],
+    "user_friendly_summary": "Hey Amit, it's great that you're taking the time to talk about how you're feeling. It's okay to experience a mix of emotions, and it's awesome that you're acknowledging your feelings. Remember, you're not alone, and there are people who care about you. Keep being open and honest with yourself and others, and don't hesitate to reach out for support when you need it.",
+    "needs_professional_help": true,
+    "professional_recommendation": "It might be helpful to talk to a professional counselor who can provide you with personalized guidance and support. They can help you work through your emotions and develop coping strategies to manage your feelings in a healthy way.",
+    "id": "rep_53b1aedc",
+    "timestamp": "2026-06-05T14:32:11Z",
+    "language": "en",
+    "transcript": [
+      {
+        "role": "user",
+        "text": "my name is Amit Jaiswal"
+      },
+      {
+        "role": "assistant",
+        "text": "Hello Amit Jaiswal, it's lovely to meet you."
+      },
+      {
+        "role": "user",
+        "text": "nice to meet you to"
+      },
+      {
+        "role": "assistant",
+        "text": "Amit, I'm Aura, your wellness counselor today from IIBM Patna."
+      }
+    ]
+  }
+]

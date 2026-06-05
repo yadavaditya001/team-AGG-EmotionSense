@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmotionSense v3.5 – Counselor Portal</title>
+  <meta name="description" content="Wellbeing Counselor Dashboard - EmotionSense.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Inter:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { slate: { 950: '#020617' } },
+          fontFamily: {
+            sans:   ['Inter',  'sans-serif'],
+            outfit: ['Outfit', 'sans-serif'],
+            mono:   ['Fira Code', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .cyber-grid {
+      background-image:
+        linear-gradient(to right, rgba(0,240,255,0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,240,255,0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .glassmorphism {
+      background: rgba(15,23,42,0.65);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .card-hover { transition: transform 0.22s ease, box-shadow 0.22s ease; }
+    .card-hover:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(0,0,0,0.35); }
+
+    /* Sliding side drawer */
+    .drawer-transition {
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,240,255,0.18); border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans cyber-grid">
+
+  <!-- Ambient glows -->
+  <div class="fixed top-0 left-1/4 w-[600px] h-[600px] bg-cyan-500/4 rounded-full blur-[140px] pointer-events-none -translate-x-1/2 -translate-y-1/2"></div>
+  <div class="fixed bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-500/4 rounded-full blur-[140px] pointer-events-none translate-x-1/2 translate-y-1/2"></div>
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
+  <header class="sticky top-0 z-30 border-b border-slate-900 bg-slate-950/88 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center font-outfit font-black text-sm shadow-[0_0_18px_rgba(6,182,212,0.55)]">ES</div>
+      <span class="font-outfit font-bold text-lg tracking-tight">EmotionSense
+        <span class="text-cyan-400 text-xs font-mono align-super border border-cyan-500/30 px-1 rounded bg-cyan-950/20">v3.5</span>
+      </span>
+    </div>
+
+    <!-- Counselor Profile Tag -->
+    <div class="flex items-center gap-3">
+      <div class="text-right hidden sm:block">
+        <p class="text-xs font-outfit font-bold text-slate-200">Shivangi Ma'am</p>
+        <p class="text-[10px] font-mono text-slate-500 uppercase">Wellbeing Counselor</p>
+      </div>
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center text-lg shadow-[0_0_12px_rgba(249,115,22,0.4)]">👩‍⚕️</div>
+      <a href="/" class="text-xs text-slate-400 hover:text-cyan-400 border border-slate-800 bg-slate-900 px-3.5 py-2 rounded-xl transition ml-2">Exit Portal</a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-6 relative pb-20">
+    
+    <!-- Welcome banner -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div>
+        <h1 class="font-outfit font-black text-3xl tracking-tight leading-none bg-gradient-to-br from-white to-slate-300 bg-clip-text text-transparent">Counselor Workspace</h1>
+        <p class="text-slate-400 text-sm mt-1.5">Monitor student assessments, analyze behavioral traits, and view detailed consultation reports.</p>
+      </div>
+      <span id="currentDate" class="text-xs font-mono text-slate-500 uppercase bg-slate-900 border border-slate-800/80 px-4 py-2 rounded-xl"></span>
+    </div>
+
+    <!-- ── 1. METRICS OVERVIEW ── -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Total cases -->
+      <div class="glassmorphism rounded-2xl p-5 card-hover relative overflow-hidden">
+        <p class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Total Assessed</p>
+        <h3 id="statTotal" class="font-outfit font-black text-3xl text-slate-100 mt-1">0</h3>
+        <p class="text-slate-400 text-xs mt-1">Student screenings</p>
+      </div>
+
+      <!-- High concern cases -->
+      <div class="glassmorphism rounded-2xl p-5 border-l-4 border-red-500/40 card-hover relative overflow-hidden">
+        <p class="text-[10px] font-mono text-red-400 uppercase tracking-wider">High Concern</p>
+        <h3 id="statHigh" class="font-outfit font-black text-3xl text-red-400 mt-1">0</h3>
+        <p class="text-slate-400 text-xs mt-1">Require professional care</p>
+      </div>
+
+      <!-- Moderate concern cases -->
+      <div class="glassmorphism rounded-2xl p-5 border-l-4 border-amber-500/40 card-hover relative overflow-hidden">
+        <p class="text-[10px] font-mono text-amber-400/80 uppercase tracking-wider">Moderate Concern</p>
+        <h3 id="statMod" class="font-outfit font-black text-3xl text-amber-400 mt-1">0</h3>
+        <p class="text-slate-400 text-xs mt-1">Needs self-care / follow-up</p>
+      </div>
+
+      <!-- Healthy cases -->
+      <div class="glassmorphism rounded-2xl p-5 border-l-4 border-emerald-500/40 card-hover relative overflow-hidden">
+        <p class="text-[10px] font-mono text-emerald-400 uppercase tracking-wider">Healthy Status</p>
+        <h3 id="statHealthy" class="font-outfit font-black text-3xl text-emerald-400 mt-1">0</h3>
+        <p class="text-slate-400 text-xs mt-1">Good emotional baseline</p>
+      </div>
+    </div>
+
+    <!-- ── 2. FILTER & CONTROLS ── -->
+    <div class="glassmorphism rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+      <!-- Search -->
+      <div class="relative w-full md:w-80">
+        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 text-sm">🔍</span>
+        <input id="searchInput" type="text" placeholder="Search by name, location..." oninput="filterReports()"
+          class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500/40 text-slate-100 pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none transition font-sans">
+      </div>
+
+      <!-- Filter Buttons -->
+      <div class="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
+        <button id="filterBtnAll" onclick="setFilter('all')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 transition">All Reports</button>
+        <button id="filterBtnHigh" onclick="setFilter('high')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-red-400 hover:border-red-500/30 transition">High Concern</button>
+        <button id="filterBtnMod" onclick="setFilter('moderate')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-amber-400 hover:border-amber-500/30 transition">Moderate</button>
+        <button id="filterBtnHealthy" onclick="setFilter('healthy')" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 transition">Healthy</button>
+      </div>
+    </div>
+
+    <!-- ── 3. STUDENT REPORTS TABLE / LIST ── -->
+    <div class="glassmorphism rounded-2xl overflow-hidden border border-slate-900">
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-left">
+          <thead>
+            <tr class="bg-slate-900/60 border-b border-slate-900 text-slate-400 font-mono text-[10px] uppercase tracking-wider">
+              <th class="p-4 pl-6">Student Info</th>
+              <th class="p-4">Assessed Date</th>
+              <th class="p-4">Session Language</th>
+              <th class="p-4">Wellness Score</th>
+              <th class="p-4">Status Flag</th>
+              <th class="p-4 pr-6 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="reportsTableBody" class="divide-y divide-slate-900/40 text-sm">
+            <!-- Dynamically populated rows -->
+            <tr>
+              <td colspan="6" class="p-8 text-center text-slate-500">Retrieving student database files...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       REPORT VIEW DRAWER (Slides in from the right)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div id="drawerOverlay" class="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm hidden transition-opacity duration-300" onclick="closeDrawer()"></div>
+  
+  <div id="detailDrawer" class="fixed top-0 right-0 bottom-0 z-50 w-full lg:w-[780px] bg-slate-950 border-l border-slate-850 shadow-2xl flex flex-col translate-x-full drawer-transition">
+    
+    <!-- Drawer Header -->
+    <div class="p-5 border-b border-slate-900 bg-slate-900/30 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div id="drawerAvatar" class="w-11 h-11 rounded-xl bg-cyan-900/50 flex items-center justify-center text-xl">🎓</div>
+        <div>
+          <h2 id="drawerName" class="font-outfit font-black text-xl text-slate-100">Student Name</h2>
+          <p id="drawerMeta" class="text-slate-400 text-xs font-mono mt-0.5">Age: 20 · IIBM Patna</p>
+        </div>
+      </div>
+      <button onclick="closeDrawer()" class="p-2 bg-slate-900 border border-slate-850 rounded-xl hover:text-cyan-400 transition">✕ Close</button>
+    </div>
+
+    <!-- Drawer Body (Scrollable) -->
+    <div class="flex-1 overflow-y-auto p-6 space-y-6">
+      
+      <!-- Summary Metrics Bar -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Severity Score card -->
+        <div class="bg-slate-900/40 border border-slate-900 p-4 rounded-xl flex items-center justify-between">
+          <div>
+            <p class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Severity Level</p>
+            <h4 id="drawerSeverityLabel" class="font-outfit font-bold text-lg mt-0.5 text-slate-100">Moderate Stress</h4>
+          </div>
+          <div id="drawerScore" class="w-12 h-12 rounded-full border border-amber-500/40 flex items-center justify-center font-outfit font-black text-lg text-amber-400 bg-slate-950">5</div>
+        </div>
+
+        <!-- Language card -->
+        <div class="bg-slate-900/40 border border-slate-900 p-4 rounded-xl flex items-center justify-between">
+          <div>
+            <p class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Session Language</p>
+            <h4 id="drawerLang" class="font-outfit font-bold text-lg mt-0.5 text-slate-100">English</h4>
+          </div>
+          <span class="text-2xl">🌐</span>
+        </div>
+      </div>
+
+      <!-- User Friendly Summary -->
+      <div class="bg-cyan-950/15 border border-cyan-500/15 p-5 rounded-2xl relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-cyan-400/5 rounded-full blur-xl"></div>
+        <p class="text-[10px] font-mono text-cyan-400 uppercase tracking-wider mb-2">AI Generated Wellness Summary</p>
+        <p id="drawerSummary" class="text-slate-200 text-sm leading-relaxed font-sans">Summary text goes here...</p>
+      </div>
+
+      <!-- Biometric Logs: Face & Speech -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Face Analysis -->
+        <div class="bg-slate-900/20 border border-slate-900 p-4 rounded-xl">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-base">😊</span>
+            <p class="text-[10px] font-mono text-purple-400 uppercase tracking-wider">Facial Emotion Analysis</p>
+          </div>
+          <p id="drawerFaceAnalysis" class="text-slate-300 text-xs leading-relaxed">No facial expression logs found.</p>
+        </div>
+
+        <!-- Speech Analysis -->
+        <div class="bg-slate-900/20 border border-slate-900 p-4 rounded-xl">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-base">🎙️</span>
+            <p class="text-[10px] font-mono text-cyan-400 uppercase tracking-wider">Speech &amp; Vocal Analysis</p>
+          </div>
+          <p id="drawerSpeechAnalysis" class="text-slate-300 text-xs leading-relaxed">No speech style metrics found.</p>
+        </div>
+      </div>
+
+      <!-- Key Concerns / Areas of attention -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-slate-900/20 border border-slate-900 p-4 rounded-xl">
+          <p class="text-[10px] font-mono text-red-400 uppercase tracking-wider mb-2">⚠️ Areas of Concern</p>
+          <ul id="drawerConcerns" class="space-y-1.5 text-xs text-slate-300"></ul>
+        </div>
+
+        <div class="bg-slate-900/20 border border-slate-900 p-4 rounded-xl">
+          <p class="text-[10px] font-mono text-emerald-400 uppercase tracking-wider mb-2">💪 Observed Strengths</p>
+          <ul id="drawerStrengths" class="space-y-1.5 text-xs text-slate-300"></ul>
+        </div>
+      </div>
+
+      <!-- Verbatim Transcript -->
+      <div class="bg-slate-900/40 border border-slate-900 p-5 rounded-2xl">
+        <p class="text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-850 pb-2">Verbatim Conversation Transcript</p>
+        <div id="drawerTranscript" class="space-y-4 max-h-[300px] overflow-y-auto pr-2 text-xs">
+          <!-- Populated from transcript arrays -->
+        </div>
+      </div>
+
+      <!-- Counselor Follow Up Section -->
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+        <p class="text-xs font-outfit font-bold text-slate-200 mb-2">Professional Care Log</p>
+        <p class="text-slate-400 text-xs leading-relaxed mb-4">You can log private notes regarding follow-up counseling sessions or contact details for this student. These logs are saved in the system.</p>
+        <div class="flex gap-2">
+          <input type="text" placeholder="Add follow-up notes..." class="flex-1 bg-slate-950 border border-slate-800 focus:border-cyan-500/30 text-slate-100 px-3.5 py-2 rounded-xl text-xs outline-none">
+          <button onclick="alert('Note saved locally in browser mock log.')" class="px-4 py-2 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-outfit font-bold text-xs uppercase rounded-xl tracking-wide transition">Save</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    'use strict';
+
+    // Global reports cache
+    let reports = [];
+    let activeFilter = 'all';
+
+    // ── Load date ────────────────────────────────────────────────────────────
+    document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' 
+    }).toUpperCase();
+
+    // ── Fetch reports from API ────────────────────────────────────────────────
+    async function fetchReports() {
+      try {
+        const res = await fetch('/api/counselor/reports');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        reports = await res.json();
+        
+        // Sort reports by timestamp descending (newest first)
+        reports.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        calculateMetrics();
+        renderTable(reports);
+      } catch(e) {
+        console.error('Error fetching student files:', e);
+        document.getElementById('reportsTableBody').innerHTML = `
+          <tr>
+            <td colspan="6" class="p-8 text-center text-red-400">Failed to connect to reports database API. Please ensure the Flask app is running.</td>
+          </tr>
+        `;
+      }
+    }
+
+    // ── Calculate metrics summary ─────────────────────────────────────────────
+    function calculateMetrics() {
+      const total = reports.length;
+      let high = 0, mod = 0, healthy = 0;
+      
+      reports.forEach(r => {
+        const score = r.severity_score || 0;
+        if (score >= 7) high++;
+        else if (score >= 4) mod++;
+        else healthy++;
+      });
+      
+      document.getElementById('statTotal').innerText = total;
+      document.getElementById('statHigh').innerText = high;
+      document.getElementById('statMod').innerText = mod;
+      document.getElementById('statHealthy').innerText = healthy;
+    }
+
+    // ── Render table contents ────────────────────────────────────────────────
+    function renderTable(list) {
+      const tbody = document.getElementById('reportsTableBody');
+      tbody.innerHTML = '';
+      
+      if (list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="p-8 text-center text-slate-500">No matching student reports found.</td>
+          </tr>
+        `;
+        return;
+      }
+      
+      list.forEach(r => {
+        const score = r.severity_score || 0;
+        let scoreColor = 'text-emerald-400 border-emerald-500/20 bg-emerald-950/10';
+        let flagText = 'Healthy';
+        let flagColor = 'text-emerald-400 bg-emerald-950/20 border-emerald-500/20';
+        
+        if (score >= 7) {
+          scoreColor = 'text-red-400 border-red-500/20 bg-red-950/10';
+          flagText = 'High Concern';
+          flagColor = 'text-red-400 bg-red-950/20 border-red-500/20';
+        } else if (score >= 4) {
+          scoreColor = 'text-amber-400 border-amber-500/20 bg-amber-950/10';
+          flagText = 'Moderate';
+          flagColor = 'text-amber-400 bg-amber-950/20 border-amber-500/20';
+        }
+        
+        const dateStr = new Date(r.timestamp).toLocaleDateString('en-US', {
+          month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-900/30 hover:bg-slate-900/30 transition-all';
+        tr.innerHTML = `
+          <td class="p-4 pl-6">
+            <div class="flex items-center gap-2.5">
+              <span class="text-xl">🎓</span>
+              <div>
+                <p class="font-outfit font-semibold text-slate-200">${escapeHtml(r.user_name || 'Friend')}</p>
+                <p class="text-slate-500 text-[10px] font-mono mt-0.5">Age: ${r.user_age || 'N/A'} · Loc: ${escapeHtml(r.user_location || 'N/A')}</p>
+              </div>
+            </div>
+          </td>
+          <td class="p-4 text-slate-300 font-mono text-xs">${dateStr}</td>
+          <td class="p-4">
+            <span class="px-2.5 py-1 text-[10px] font-mono font-bold uppercase rounded border ${r.language === 'hi' ? 'text-orange-400 border-orange-500/30 bg-orange-950/10' : 'text-cyan-400 border-cyan-500/30 bg-cyan-950/10'}">${r.language === 'hi' ? 'हिन्दी (hi)' : 'English (en)'}</span>
+          </td>
+          <td class="p-4 font-mono">
+            <span class="px-2.5 py-1.5 rounded-full border text-xs font-bold ${scoreColor}">${score}/10</span>
+          </td>
+          <td class="p-4">
+            <span class="px-2.5 py-1 text-[10px] font-mono font-bold uppercase border rounded-full ${flagColor}">${flagText}</span>
+          </td>
+          <td class="p-4 pr-6 text-right">
+            <button onclick="openDetail('${r.id}')" 
+              class="px-4 py-2 bg-slate-900 hover:bg-cyan-950/40 text-slate-300 hover:text-cyan-400 border border-slate-850 hover:border-cyan-500/30 font-outfit font-bold text-xs uppercase tracking-wide rounded-xl transition">
+              Review File →
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ── Filter and Search Logic ──────────────────────────────────────────────
+    function setFilter(filter) {
+      activeFilter = filter;
+      
+      const buttons = {
+        all: document.getElementById('filterBtnAll'),
+        high: document.getElementById('filterBtnHigh'),
+        moderate: document.getElementById('filterBtnMod'),
+        healthy: document.getElementById('filterBtnHealthy')
+      };
+      
+      Object.entries(buttons).forEach(([k, btn]) => {
+        if (k === filter) {
+          btn.className = "px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 transition";
+        } else {
+          // Reset style
+          const resetClasses = {
+            all: 'text-slate-400 border-slate-800 hover:text-cyan-400 hover:border-cyan-500/30',
+            high: 'text-slate-400 border-slate-800 hover:text-red-400 hover:border-red-500/30',
+            moderate: 'text-slate-400 border-slate-800 hover:text-amber-400 hover:border-amber-500/30',
+            healthy: 'text-slate-400 border-slate-800 hover:text-emerald-400 hover:border-emerald-500/30'
+          };
+          btn.className = `px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 border ${resetClasses[k]} transition`;
+        }
+      });
+      
+      filterReports();
+    }
+
+    function filterReports() {
+      const search = document.getElementById('searchInput').value.trim().toLowerCase();
+      
+      const filtered = reports.filter(r => {
+        // Filter by role
+        const score = r.severity_score || 0;
+        let matchesFilter = true;
+        if (activeFilter === 'high' && score < 7) matchesFilter = false;
+        else if (activeFilter === 'moderate' && (score < 4 || score >= 7)) matchesFilter = false;
+        else if (activeFilter === 'healthy' && score >= 4) matchesFilter = false;
+        
+        // Filter by search query
+        let matchesSearch = true;
+        if (search) {
+          const name = (r.user_name || '').toLowerCase();
+          const location = (r.user_location || '').toLowerCase();
+          if (!name.includes(search) && !location.includes(search)) {
+            matchesSearch = false;
+          }
+        }
+        
+        return matchesFilter && matchesSearch;
+      });
+      
+      renderTable(filtered);
+    }
+
+    // ── Open student detail drawer ────────────────────────────────────────────
+    function openDetail(reportId) {
+      const r = reports.find(item => item.id === reportId);
+      if (!r) return;
+      
+      document.getElementById('drawerName').innerText = r.user_name || 'Friend';
+      document.getElementById('drawerMeta').innerText = `Age: ${r.user_age || 'Unknown'} · Location: ${r.user_location || 'Unknown'}`;
+      
+      // Score and severity label
+      const score = r.severity_score || 0;
+      const scoreEl = document.getElementById('drawerScore');
+      const scoreLabel = document.getElementById('drawerSeverityLabel');
+      scoreEl.innerText = score;
+      
+      let sColor = 'border-emerald-500/40 text-emerald-400';
+      if (score >= 7) {
+        sColor = 'border-red-500/40 text-red-400';
+        scoreLabel.innerText = 'High Concern Status';
+        scoreLabel.className = 'font-outfit font-bold text-lg mt-0.5 text-red-400';
+      } else if (score >= 4) {
+        sColor = 'border-amber-500/40 text-amber-400';
+        scoreLabel.innerText = 'Moderate Stress Status';
+        scoreLabel.className = 'font-outfit font-bold text-lg mt-0.5 text-amber-400';
+      } else {
+        scoreLabel.innerText = 'Healthy Baseline';
+        scoreLabel.className = 'font-outfit font-bold text-lg mt-0.5 text-emerald-400';
+      }
+      scoreEl.className = `w-12 h-12 rounded-full border flex items-center justify-center font-outfit font-black text-lg bg-slate-950 ${sColor}`;
+      
+      document.getElementById('drawerLang').innerText = r.language === 'hi' ? 'हिन्दी (Hindi)' : 'English (English)';
+      document.getElementById('drawerSummary').innerText = r.user_friendly_summary || 'No summary text generated.';
+      document.getElementById('drawerFaceAnalysis').innerText = r.face_analysis || 'No facial logs recorded.';
+      document.getElementById('drawerSpeechAnalysis').innerText = r.speech_analysis || 'No vocal logs recorded.';
+      
+      // Concerns List
+      const concernsList = document.getElementById('drawerConcerns');
+      concernsList.innerHTML = '';
+      const concerns = r.key_concerns || [];
+      if (concerns.length === 0) {
+        concernsList.innerHTML = '<li class="text-slate-500">None detected during check-in</li>';
+      } else {
+        concerns.forEach(c => {
+          const li = document.createElement('li');
+          li.className = 'flex items-start gap-1.5';
+          li.innerHTML = `<span class="text-red-400 flex-shrink-0">•</span><span>${escapeHtml(c)}</span>`;
+          concernsList.appendChild(li);
+        });
+      }
+      
+      // Strengths List
+      const strengthsList = document.getElementById('drawerStrengths');
+      strengthsList.innerHTML = '';
+      const strengths = r.positive_factors || [];
+      if (strengths.length === 0) {
+        strengthsList.innerHTML = '<li class="text-slate-500">None recorded in this session</li>';
+      } else {
+        strengths.forEach(s => {
+          const li = document.createElement('li');
+          li.className = 'flex items-start gap-1.5';
+          li.innerHTML = `<span class="text-emerald-400 flex-shrink-0">✓</span><span>${escapeHtml(s)}</span>`;
+          strengthsList.appendChild(li);
+        });
+      }
+      
+      // Verbatim transcript populate
+      const transcriptCont = document.getElementById('drawerTranscript');
+      transcriptCont.innerHTML = '';
+      const transcript = r.transcript || [];
+      if (transcript.length === 0) {
+        transcriptCont.innerHTML = '<p class="text-slate-500 italic text-center py-4">No transcription text available for this session.</p>';
+      } else {
+        transcript.forEach(t => {
+          const div = document.createElement('div');
+          const isUser = t.role === 'user';
+          div.className = `flex flex-col ${isUser ? 'items-end' : 'items-start'}`;
+          div.innerHTML = `
+            <div class="max-w-[85%] rounded-2xl px-4 py-2.5 ${isUser ? 'bg-cyan-950/40 text-slate-100 border border-cyan-500/20' : 'bg-slate-900 text-slate-200 border border-slate-800'}">
+              <p class="font-mono text-[9px] text-slate-500 uppercase tracking-widest mb-0.5">${isUser ? 'Student' : 'AURA (AI)'}</p>
+              <p class="leading-relaxed text-[11px]">${escapeHtml(t.text)}</p>
+            </div>
+          `;
+          transcriptCont.appendChild(div);
+        });
+      }
+      
+      // Show Drawer and Overlay
+      document.getElementById('drawerOverlay').classList.remove('hidden');
+      document.getElementById('detailDrawer').classList.remove('translate-x-full');
+      document.getElementById('detailDrawer').classList.add('translate-x-0');
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawerOverlay').classList.add('hidden');
+      document.getElementById('detailDrawer').classList.remove('translate-x-0');
+      document.getElementById('detailDrawer').classList.add('translate-x-full');
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // Run on startup
+    fetchReports();
+  </script>
+</body>
+</html>

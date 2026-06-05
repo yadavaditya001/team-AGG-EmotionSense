@@ -1,0 +1,29 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start EmotionSense Server",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "${workspaceFolder}/app.py"
+            ],
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "label": "EmotionSense Server"
+            },
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^NEVER_MATCH$"
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "Serving Flask app",
+                    "endsPattern": "Running on http://127\\.0\\.0\\.1:5000"
+                }
+            }
+        }
+    ]
+}

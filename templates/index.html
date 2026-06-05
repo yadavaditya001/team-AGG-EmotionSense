@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmotionSense v3.0 – AI Wellness Video Call</title>
+  <meta name="description" content="Talk to Aura, your AI wellness counselor. A voice-first mental health check-in with live face and speech analysis.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Inter:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { slate: { 950: '#020617' } },
+          fontFamily: {
+            sans:   ['Inter',  'sans-serif'],
+            outfit: ['Outfit', 'sans-serif'],
+            mono:   ['Fira Code', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { user-select: none; }
+
+    .cyber-grid {
+      background-image:
+        linear-gradient(to right, rgba(0,240,255,0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,240,255,0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    .glassmorphism {
+      background: rgba(15, 23, 42, 0.68);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(1.2); }
+    }
+    .pulse-dot { animation: pulse-dot 1.8s ease-in-out infinite; }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeInUp 0.6s ease both; }
+
+    @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(28px,-18px) scale(1.1)} 66%{transform:translate(-14px,8px) scale(0.95)} }
+    @keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-22px,14px) scale(0.9)} 66%{transform:translate(18px,-8px) scale(1.05)} }
+    .blob1 { animation: blob1 13s ease-in-out infinite; }
+    .blob2 { animation: blob2 16s ease-in-out infinite; }
+
+    /* Avatar video-call frame */
+    .avatar-frame {
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(0,200,255,0.18),
+                  0 0 28px rgba(0,200,255,0.07),
+                  0 22px 55px rgba(0,0,0,0.55);
+      transition: box-shadow 0.5s ease;
+    }
+    .avatar-frame.speaking {
+      box-shadow: 0 0 0 2px rgba(180,0,230,0.45),
+                  0 0 40px rgba(180,0,230,0.14),
+                  0 22px 55px rgba(0,0,0,0.55);
+    }
+
+    /* Scan line overlay */
+    .scan-overlay {
+      background: repeating-linear-gradient(
+        to bottom, transparent, transparent 2px,
+        rgba(0,0,0,0.035) 2px, rgba(0,0,0,0.035) 4px
+      );
+      pointer-events: none;
+    }
+
+    /* Report ready banner slide */
+    #reportReadyBanner {
+      transform: translateY(100%);
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #reportReadyBanner.visible { transform: translateY(0); }
+
+    /* PIP camera */
+    #pipContainer video, #pipContainer canvas {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+    }
+    #pipContainer canvas { pointer-events: none; }
+    #pipContainer video  { object-fit: cover; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,240,255,0.2); border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-950 text-white h-screen overflow-hidden font-sans cyber-grid">
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SPLASH LOADING SCREEN
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div id="splashScreen" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950 overflow-hidden transition-opacity duration-700">
+    <div class="absolute w-[500px] h-[500px] rounded-full bg-cyan-500/10 blur-[130px] animate-pulse"></div>
+    <div class="relative z-10 flex flex-col items-center text-center px-6">
+      <div class="relative w-28 h-28 mb-8 flex items-center justify-center">
+        <!-- Glowing Rings -->
+        <div class="absolute inset-0 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin"></div>
+        <div class="absolute inset-2 rounded-full border-4 border-dashed border-indigo-500/20 border-b-indigo-400 animate-spin" style="animation-duration: 2s; animation-direction: reverse;"></div>
+        <!-- Inner Core -->
+        <div class="text-4xl animate-bounce">🧠</div>
+      </div>
+      <h2 class="font-outfit font-black text-4xl tracking-wider uppercase bg-gradient-to-r from-cyan-400 via-white to-indigo-400 bg-clip-text text-transparent">
+        EmotionSense AI
+      </h2>
+      <p class="text-slate-500 font-mono text-xs mt-2.5 uppercase tracking-widest">Wellness Platform v3.5</p>
+      
+      <!-- Progress Bar -->
+      <div class="w-56 h-2 bg-slate-900 rounded-full mt-10 overflow-hidden border border-slate-800/80">
+        <div id="splashProgress" class="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 transition-all duration-300" style="width: 0%;"></div>
+      </div>
+      <p id="splashStatus" class="text-slate-400 font-mono text-[10px] mt-4 uppercase tracking-wider">Loading system components...</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       WELCOME & ROLE SELECTION SCREEN
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div id="welcomeScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 overflow-hidden">
+
+    <div class="absolute w-[500px] h-[500px] rounded-full bg-cyan-500/6 blur-[110px] blob1 top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+    <div class="absolute w-[400px] h-[400px] rounded-full bg-indigo-500/6 blur-[110px] blob2 bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 pointer-events-none"></div>
+
+    <div class="relative z-10 w-full max-w-2xl px-6 flex flex-col items-center text-center fade-in">
+
+      <!-- Common Header Logo -->
+      <div class="flex items-center gap-3 mb-8">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center font-outfit font-black text-sm shadow-[0_0_22px_rgba(6,182,212,0.6)]">ES</div>
+        <span class="font-outfit font-bold text-xl">EmotionSense <span class="text-cyan-400 text-xs font-mono align-super border border-cyan-500/30 px-1 rounded bg-cyan-950/20">v3.5</span></span>
+      </div>
+
+      <!-- ── PANEL 1: ROLE SELECTION ── -->
+      <div id="rolePanel" class="w-full flex flex-col items-center">
+        <h1 class="font-outfit font-black text-4xl md:text-5xl mb-3 leading-none tracking-tight bg-gradient-to-br from-white via-cyan-100 to-indigo-200 bg-clip-text text-transparent">
+          Select Your Role
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base mb-10 max-w-md">
+          Please select your portal to proceed to your custom wellness tools.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-lg">
+          <!-- Student Role Option -->
+          <button onclick="selectRole('student')" 
+            class="glassmorphism rounded-2xl p-6 text-left border border-slate-800 hover:border-cyan-500/40 hover:bg-slate-900/50 group transition duration-300 transform hover:-translate-y-1">
+            <div class="w-12 h-12 rounded-xl bg-cyan-950/80 border border-cyan-500/20 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">🎓</div>
+            <h3 class="font-outfit font-bold text-lg text-slate-100 group-hover:text-cyan-400 transition">I am a Student</h3>
+            <p class="text-slate-400 text-xs mt-2 leading-relaxed">Start a private AI video-call check-in, get live emotion analysis, and view your wellness report.</p>
+          </button>
+
+          <!-- Counselor Role Option -->
+          <button onclick="selectRole('counselor')" 
+            class="glassmorphism rounded-2xl p-6 text-left border border-slate-800 hover:border-indigo-500/40 hover:bg-slate-900/50 group transition duration-300 transform hover:-translate-y-1">
+            <div class="w-12 h-12 rounded-xl bg-indigo-950/80 border border-indigo-500/20 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">🩺</div>
+            <h3 class="font-outfit font-bold text-lg text-slate-100 group-hover:text-indigo-400 transition">Wellbeing Counselor</h3>
+            <p class="text-slate-400 text-xs mt-2 leading-relaxed">Access student wellness files, monitor risk assessments, and view transcripts (Shivangi Ma'am's Portal).</p>
+          </button>
+        </div>
+        <p class="mt-12 text-slate-600 text-[11px] font-mono">Confidentiality &amp; Data Security Enabled</p>
+      </div>
+
+      <!-- ── PANEL 2: LANGUAGE SELECTION ── -->
+      <div id="langPanel" class="w-full hidden flex flex-col items-center">
+        <h1 class="font-outfit font-black text-4xl md:text-5xl mb-3 leading-none tracking-tight bg-gradient-to-br from-white via-cyan-100 to-indigo-200 bg-clip-text text-transparent">
+          Choose Language / भाषा चुनें
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base mb-10 max-w-md">
+          Select the language for your AI counselor session.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg mb-8">
+          <!-- English Language Button -->
+          <button onclick="selectLanguage('en')" 
+            class="glassmorphism rounded-2xl p-5 hover:bg-cyan-950/40 hover:border-cyan-500/40 border border-slate-800 text-center font-outfit font-semibold text-lg text-slate-100 hover:text-cyan-400 transition">
+            English (Global)
+          </button>
+
+          <!-- Hindi Language Button -->
+          <button onclick="selectLanguage('hi')" 
+            class="glassmorphism rounded-2xl p-5 hover:bg-cyan-950/40 hover:border-cyan-500/40 border border-slate-800 text-center font-outfit font-semibold text-lg text-slate-100 hover:text-cyan-400 transition">
+            हिन्दी (Hindi)
+          </button>
+        </div>
+
+        <button onclick="goBackTo('role')" class="text-slate-500 hover:text-slate-300 text-xs font-mono uppercase tracking-widest transition">← Back to roles</button>
+      </div>
+
+      <!-- ── PANEL 3: STUDENT GREETING & START CALL ── -->
+      <div id="startCallPanel" class="w-full hidden flex flex-col items-center">
+        <h1 class="font-outfit font-black text-5xl md:text-7xl mb-3 leading-none tracking-tight bg-gradient-to-br from-white via-cyan-100 to-indigo-300 bg-clip-text text-transparent">
+          Meet Aura.
+        </h1>
+        <p id="counselorIntroText" class="text-slate-300 text-lg md:text-xl mb-2 max-w-xl leading-relaxed">
+          Your AI wellness counselor — here for a caring, personal mental health check-in.
+        </p>
+        <p class="text-slate-500 text-sm font-mono mb-8">Voice · Camera · AI · Private &amp; Secure</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-9 w-full max-w-lg text-left">
+          <div class="glassmorphism rounded-xl p-3.5 flex gap-2.5 items-start">
+            <span class="text-base mt-0.5">🎙️</span>
+            <div><p class="font-semibold text-slate-200 text-xs">Voice Interview</p><p class="text-slate-500 text-[11px] mt-0.5">Aura asks questions naturally</p></div>
+          </div>
+          <div class="glassmorphism rounded-xl p-3.5 flex gap-2.5 items-start">
+            <span class="text-base mt-0.5">👁️</span>
+            <div><p class="font-semibold text-slate-200 text-xs">Emotion Tracking</p><p class="text-slate-500 text-[11px] mt-0.5">Live face expression analysis</p></div>
+          </div>
+          <div class="glassmorphism rounded-xl p-3.5 flex gap-2.5 items-start">
+            <span class="text-base mt-0.5">📋</span>
+            <div><p class="font-semibold text-slate-200 text-xs">Wellness Report</p><p class="text-slate-500 text-[11px] mt-0.5">Easy-to-read personal summary</p></div>
+          </div>
+        </div>
+
+        <div class="relative group mb-8">
+          <div class="absolute -inset-1 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-500 blur-xl opacity-50 group-hover:opacity-80 transition duration-500 animate-pulse"></div>
+          <button id="startBtn" onclick="startSession()"
+            class="relative bg-slate-950 border-2 border-cyan-400/80 hover:border-cyan-300 text-white px-14 py-5 rounded-full font-outfit font-bold text-xl tracking-wide uppercase transition hover:scale-105 active:scale-97 shadow-[0_0_30px_rgba(0,240,255,0.2)]">
+            Start Video Call
+          </button>
+        </div>
+
+        <div class="flex items-center gap-6">
+          <button onclick="goBackTo('lang')" class="text-slate-500 hover:text-slate-300 text-xs font-mono uppercase tracking-widest transition">← Change Language</button>
+          <span class="text-slate-700">|</span>
+          <span class="text-slate-600 text-xs font-mono">Camera &amp; Mic required · ~8-12 min session</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MAIN CALL INTERFACE
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div id="callInterface" class="hidden h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="flex items-center justify-between px-5 py-3 border-b border-slate-900 bg-slate-950/90 backdrop-blur-sm flex-shrink-0">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center font-outfit font-black text-xs shadow-[0_0_12px_rgba(6,182,212,0.5)]">ES</div>
+        <span class="font-outfit font-bold text-base">EmotionSense <span class="text-cyan-400 text-[10px] font-mono align-super border border-cyan-500/30 px-1 rounded">v3.0</span></span>
+      </div>
+
+      <div class="flex items-center gap-2 text-xs font-mono text-red-400 bg-red-950/20 border border-red-500/30 px-3 py-1.5 rounded-full">
+        <span class="w-2 h-2 rounded-full bg-red-500 pulse-dot"></span>
+        <span class="hidden sm:inline">LIVE · WELLNESS CHECK-IN</span>
+        <span class="sm:hidden">LIVE</span>
+      </div>
+
+      <button onclick="endSession()"
+        class="flex items-center gap-2 bg-red-950/30 hover:bg-red-950/60 text-red-400 border border-red-500/40 hover:border-red-400 px-4 py-2.5 rounded-xl font-outfit font-semibold text-sm tracking-wide transition hover:scale-105">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 flex-shrink-0">
+          <path fill-rule="evenodd" d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" clip-rule="evenodd"/>
+        </svg>
+        End Call
+      </button>
+    </header>
+
+    <!-- Main -->
+    <main class="flex-1 flex flex-col items-center justify-center relative min-h-0 overflow-hidden">
+
+      <!-- Avatar canvas wrapper (acts as video-call window) -->
+      <div id="avatarContainer" class="relative avatar-frame flex-shrink-0">
+        <canvas id="avatarCanvas" class="block"></canvas>
+        <div class="absolute inset-0 scan-overlay rounded-[20px]"></div>
+      </div>
+
+      <!-- Status + subtitle below avatar -->
+      <div class="flex flex-col items-center gap-2 mt-4 px-4 w-full max-w-xl">
+
+        <div id="statusIndicator"
+          class="flex items-center gap-2 text-xs font-mono px-4 py-1.5 rounded-full border border-slate-800 bg-slate-950/80 text-slate-500">
+          <span id="statusDot" class="w-1.5 h-1.5 rounded-full bg-slate-600 flex-shrink-0"></span>
+          <span id="statusLabel">Initializing...</span>
+        </div>
+
+        <div id="subtitleBox"
+          class="glassmorphism w-full text-center px-5 py-3 rounded-2xl min-h-[48px] flex items-center justify-center transition-opacity duration-400 opacity-0">
+          <p id="subtitleText" class="text-slate-200 text-sm leading-relaxed font-sans"></p>
+        </div>
+
+        <!-- Manual text fallback -->
+        <div id="manualInputArea" class="hidden flex gap-2 w-full">
+          <input id="manualInput" type="text" placeholder="Type your answer here..."
+            class="flex-1 bg-slate-900 border border-slate-700 focus:border-cyan-400 text-slate-100 px-4 py-2.5 rounded-xl text-sm outline-none transition font-sans">
+          <button onclick="sendManualMessage()"
+            class="px-5 py-2.5 bg-cyan-950/60 hover:bg-cyan-900 text-cyan-400 border border-cyan-500/30 rounded-xl text-sm font-outfit font-semibold uppercase tracking-wide transition">Send</button>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       PIP CAMERA (fixed, bottom-right)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div id="pipContainer" class="hidden fixed bottom-5 right-5 z-40">
+    <div class="relative w-40 h-52 glassmorphism rounded-2xl overflow-hidden shadow-2xl border border-slate-800">
+      <video id="userVideo" autoplay playsinline muted></video>
+      <canvas id="faceCanvas" class="absolute inset-0"></canvas>
+      <div class="absolute bottom-0 left-0 right-0 bg-slate-950/80 border-t border-slate-900 py-1.5 px-2 flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0"></span>
+        <span id="emotionBadge" class="text-cyan-400 font-mono text-[9px] uppercase tracking-wider truncate">SCANNING...</span>
+      </div>
+      <div class="absolute top-2 left-2 text-[9px] font-mono text-slate-400 bg-slate-950/60 px-1.5 py-0.5 rounded uppercase tracking-wider">YOU</div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       INTERVIEW COMPLETE BANNER (slides up from bottom)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div id="reportReadyBanner" class="fixed bottom-0 left-0 right-0 z-30">
+    <div class="bg-gradient-to-r from-emerald-950/96 via-slate-950/96 to-indigo-950/96 backdrop-blur-md border-t border-emerald-500/30 p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xl flex-shrink-0">✅</div>
+        <div>
+          <h4 class="font-outfit font-bold text-emerald-400 text-sm uppercase tracking-wide">Interview Complete</h4>
+          <p class="text-slate-300 text-xs mt-0.5">Aura has all the information needed to build your wellness report.</p>
+        </div>
+      </div>
+      <button onclick="endSession()"
+        class="flex-shrink-0 px-8 py-3 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white rounded-xl font-outfit font-bold text-sm tracking-wide uppercase shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all hover:scale-105">
+        Generate My Wellness Report →
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       LOADING OVERLAY (during report generation)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div id="loadingOverlay" class="fixed inset-0 z-50 hidden flex flex-col items-center justify-center bg-slate-950/97 backdrop-blur-sm">
+    <div class="relative w-28 h-28 mb-8">
+      <div class="absolute inset-0 rounded-full border-4 border-slate-800 border-t-cyan-400 animate-spin"></div>
+      <div class="absolute inset-3 rounded-full border-4 border-dashed border-slate-800 border-b-purple-500 animate-spin" style="animation-duration:1.5s;animation-direction:reverse;"></div>
+      <div class="absolute inset-6 rounded-full bg-gradient-to-br from-cyan-400/15 to-purple-500/15 flex items-center justify-center text-2xl animate-pulse">🧠</div>
+    </div>
+    <h2 class="font-outfit font-extrabold text-2xl text-slate-100 uppercase mb-2 tracking-wide">Generating Your Report</h2>
+    <p class="text-slate-400 font-mono text-sm text-center max-w-xs leading-relaxed">Analyzing your conversation, facial expressions, and emotional patterns...</p>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       JAVASCRIPT ENGINE
+       ══════════════════════════════════════════════════════════════════════ -->
+  <script>
+    'use strict';
+
+    // ── Global Session State ─────────────────────────────────────────────────
+    const session = {
+      active:         false,
+      isSpeaking:     false,
+      isListening:    false,
+      currentEmotion: 'neutral',
+      transcript:     [],     // [{role:'user'|'assistant', text:'...'}]
+      emotionLog:     [],     // [{emotion:'...'}]
+      groqHistory:    [],     // [{role, content}] for Groq API
+      currentText:    '',
+      videoStream:    null,
+      audioStream:    null,
+      recognition:    null,
+      faceInterval:   null,
+      avatar:         null,
+      lang:           'en',   // 'en' or 'hi'
+    };
+
+    // Speech Statistics
+    const speechStats = {
+      turns: [], // array of { wpm, hesitations, volume, duration }
+      turnStartTime: 0,
+      turnVolumeSamples: [],
+    };
+
+    let audioContext = null;
+    let analyserNode = null;
+    let microphoneNode = null;
+    let volumeCheckInterval = null;
+
+    // Splash Screen Handler
+    document.addEventListener('DOMContentLoaded', () => {
+      const progress = document.getElementById('splashProgress');
+      const status = document.getElementById('splashStatus');
+      const splash = document.getElementById('splashScreen');
+      
+      let width = 0;
+      const stages = [
+        { pct: 20, text: 'Initializing Audio Drivers...' },
+        { pct: 50, text: 'Loading Neural Network Weights...' },
+        { pct: 80, text: 'Connecting to EmotionSense Core...' },
+        { pct: 100, text: 'AI Counselors Ready.' }
+      ];
+      
+      const interval = setInterval(() => {
+        width += 4;
+        if (width > 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            splash.classList.add('opacity-0');
+            setTimeout(() => splash.classList.add('hidden'), 700);
+          }, 300);
+          return;
+        }
+        progress.style.width = width + '%';
+        
+        const stage = stages.find(s => width <= s.pct);
+        if (stage) status.innerText = stage.text;
+      }, 70);
+    });
+
+    // Navigation and Role/Language Handling
+    function selectRole(role) {
+      if (role === 'counselor') {
+        window.location.href = '/counselor';
+      } else {
+        document.getElementById('rolePanel').classList.add('hidden');
+        document.getElementById('langPanel').classList.remove('hidden');
+      }
+    }
+
+    function selectLanguage(language) {
+      session.lang = language;
+      const introText = document.getElementById('counselorIntroText');
+      if (language === 'hi') {
+        introText.innerText = 'आपकी AI वेलनेस काउंसलर ऑरा से बात करें। एक आत्मीय, सुरक्षित और पूर्णतः निजी मानसिक स्वास्थ्य जांच।';
+        document.getElementById('startBtn').innerText = 'वीडियो कॉल शुरू करें';
+      } else {
+        introText.innerText = 'Talk to Aura, your AI wellness counselor. A voice-first mental health check-in with live face and speech analysis.';
+        document.getElementById('startBtn').innerText = 'Start Video Call';
+      }
+      document.getElementById('langPanel').classList.add('hidden');
+      document.getElementById('startCallPanel').classList.remove('hidden');
+    }
+
+    function goBackTo(panel) {
+      if (panel === 'role') {
+        document.getElementById('langPanel').classList.add('hidden');
+        document.getElementById('rolePanel').classList.remove('hidden');
+      } else if (panel === 'lang') {
+        document.getElementById('startCallPanel').classList.add('hidden');
+        document.getElementById('langPanel').classList.remove('hidden');
+      }
+    }
+
+    // Pre-load voices early
+    if (window.speechSynthesis) {
+      speechSynthesis.getVoices();
+      speechSynthesis.onvoiceschanged = () => {};
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // HUMANOID AVATAR — canvas-drawn AI counselor face
+    // ══════════════════════════════════════════════════════════════════════════
+    class HumanoidAvatar {
+      constructor(canvas) {
+        this.cv  = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.t   = 0;
+
+        // State flags
+        this.speaking  = false;
+        this.listening = false;
+
+        // Mouth open amount (px)
+        this.mouthOpen    = 0;
+        this.glowAlpha    = 0;
+        this.breathOffset = 0;
+
+        // Blink state machine
+        this.blink = { state: 0, timer: 0, nextBlink: 130 + Math.random() * 200 };
+
+        // Gaze drift
+        this.gaze = { x: 0, y: 0, tx: 0, ty: 0, timer: 0, next: 160 + Math.random() * 180 };
+
+        // Floating background particles
+        this.particles = Array.from({ length: 28 }, () => this._newParticle(true));
+
+        this.raf = null;
+        this._animate = this._animate.bind(this);
+        this.raf = requestAnimationFrame(this._animate);
+      }
+
+      _newParticle(randomY = false) {
+        const { cv } = this;
+        return {
+          x:     Math.random() * cv.width,
+          y:     randomY ? Math.random() * cv.height : cv.height + 8,
+          r:     Math.random() * 1.8 + 0.4,
+          speed: Math.random() * 0.32 + 0.14,
+          alpha: Math.random() * 0.22 + 0.07,
+        };
+      }
+
+      // ── Main render ────────────────────────────────────────────────────────
+      _frame() {
+        const { cv, ctx } = this;
+        const W = cv.width, H = cv.height;
+        ctx.clearRect(0, 0, W, H);
+
+        const cx = W / 2;
+        const cy = H * 0.40 + this.breathOffset;
+
+        this._background(W, H, cx, cy);
+        this._shoulders(cx, cy, W, H);
+        this._neck(cx, cy);
+        this._head(cx, cy);
+        this._hair(cx, cy);
+        this._eyebrows(cx, cy);
+        this._eyes(cx, cy);
+        this._nose(cx, cy);
+        this._mouth(cx, cy);
+        this._cheeks(cx, cy);
+        this._frameOverlay(W, H);
+      }
+
+      // ── Background ─────────────────────────────────────────────────────────
+      _background(W, H, cx, cy) {
+        const { ctx } = this;
+
+        const bg = ctx.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, '#070d1a');
+        bg.addColorStop(1, '#040910');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        // State-dependent glow behind avatar
+        const gc = this.speaking ? `rgba(160,0,210,${0.07 * this.glowAlpha})` : `rgba(0,170,255,${0.055 * this.glowAlpha})`;
+        const gd = ctx.createRadialGradient(cx, cy, 18, cx, cy, W * 0.72);
+        gd.addColorStop(0, gc); gd.addColorStop(1, 'transparent');
+        ctx.fillStyle = gd;
+        ctx.fillRect(0, 0, W, H);
+
+        // Rising particles
+        this.particles.forEach(p => {
+          p.y -= p.speed * (this.speaking ? 1.7 : 1);
+          if (p.y < -5) Object.assign(p, this._newParticle(false));
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = this.speaking ? `rgba(185,0,255,${p.alpha})` : `rgba(0,200,255,${p.alpha})`;
+          ctx.fill();
+        });
+      }
+
+      // ── Shoulders / jacket ─────────────────────────────────────────────────
+      _shoulders(cx, cy, W, H) {
+        const { ctx } = this;
+        const sy = cy + 94;
+
+        const jg = ctx.createLinearGradient(cx, sy, cx, H);
+        jg.addColorStop(0, '#18203a'); jg.addColorStop(0.4, '#1c2844'); jg.addColorStop(1, '#0f1828');
+        ctx.fillStyle = jg;
+        ctx.beginPath();
+        ctx.moveTo(cx - 26, sy + 6);
+        ctx.bezierCurveTo(cx - 68, sy + 32, cx - 130, sy + 72, cx - 168, H);
+        ctx.lineTo(cx + 168, H);
+        ctx.bezierCurveTo(cx + 130, sy + 72, cx + 68, sy + 32, cx + 26, sy + 6);
+        ctx.closePath();
+        ctx.fill();
+
+        // Collar detail
+        ctx.strokeStyle = 'rgba(0,200,255,0.16)';
+        ctx.lineWidth = 1; ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(cx - 4, sy + 10); ctx.lineTo(cx - 24, sy + 58);
+        ctx.moveTo(cx + 4, sy + 10); ctx.lineTo(cx + 24, sy + 58);
+        ctx.stroke();
+      }
+
+      // ── Neck ───────────────────────────────────────────────────────────────
+      _neck(cx, cy) {
+        const { ctx } = this;
+        const ny = cy + 76;
+
+        const ng = ctx.createLinearGradient(cx - 18, ny, cx + 18, ny + 22);
+        ng.addColorStop(0, '#dba072'); ng.addColorStop(0.5, '#c07858'); ng.addColorStop(1, '#a06040');
+        ctx.fillStyle = ng;
+        ctx.beginPath(); ctx.ellipse(cx, ny + 10, 19, 22, 0, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath(); ctx.ellipse(cx, ny + 28, 20, 8, 0, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // ── Head ───────────────────────────────────────────────────────────────
+      _head(cx, cy) {
+        const { ctx } = this;
+
+        const hg = ctx.createRadialGradient(cx - 16, cy - 20, 8, cx, cy, 72);
+        hg.addColorStop(0, '#f2c8a2'); hg.addColorStop(0.45, '#d89868'); hg.addColorStop(1, '#a87040');
+        ctx.fillStyle = hg;
+        ctx.beginPath(); ctx.ellipse(cx, cy, 60, 78, 0, 0, Math.PI * 2); ctx.fill();
+
+        // Side shading
+        const ss = ctx.createLinearGradient(cx - 60, cy, cx + 60, cy);
+        ss.addColorStop(0, 'rgba(0,0,0,0.16)'); ss.addColorStop(0.28, 'transparent');
+        ss.addColorStop(0.72, 'transparent'); ss.addColorStop(1, 'rgba(0,0,0,0.16)');
+        ctx.fillStyle = ss;
+        ctx.beginPath(); ctx.ellipse(cx, cy, 60, 78, 0, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // ── Hair ───────────────────────────────────────────────────────────────
+      _hair(cx, cy) {
+        const { ctx } = this;
+
+        const hg = ctx.createRadialGradient(cx, cy - 62, 14, cx, cy - 40, 92);
+        hg.addColorStop(0, '#200e02'); hg.addColorStop(0.7, '#100601'); hg.addColorStop(1, '#060300');
+        ctx.fillStyle = hg;
+
+        // Crown
+        ctx.beginPath();
+        ctx.moveTo(cx - 60, cy - 18);
+        ctx.bezierCurveTo(cx - 63, cy - 55, cx - 48, cy - 110, cx, cy - 102);
+        ctx.bezierCurveTo(cx + 48, cy - 110, cx + 63, cy - 55, cx + 60, cy - 18);
+        ctx.bezierCurveTo(cx + 55, cy - 42, cx, cy - 97, cx - 55, cy - 42);
+        ctx.fill();
+
+        // Left locks
+        ctx.beginPath();
+        ctx.moveTo(cx - 60, cy - 18);
+        ctx.bezierCurveTo(cx - 68, cy + 8, cx - 72, cy + 42, cx - 64, cy + 84);
+        ctx.lineTo(cx - 50, cy + 80);
+        ctx.bezierCurveTo(cx - 58, cy + 40, cx - 55, cy + 8, cx - 52, cy - 14);
+        ctx.fill();
+
+        // Right locks
+        ctx.beginPath();
+        ctx.moveTo(cx + 60, cy - 18);
+        ctx.bezierCurveTo(cx + 68, cy + 8, cx + 72, cy + 42, cx + 64, cy + 84);
+        ctx.lineTo(cx + 50, cy + 80);
+        ctx.bezierCurveTo(cx + 58, cy + 40, cx + 55, cy + 8, cx + 52, cy - 14);
+        ctx.fill();
+
+        // Hair sheen
+        ctx.fillStyle = 'rgba(255,255,255,0.065)';
+        ctx.beginPath(); ctx.ellipse(cx - 12, cy - 70, 17, 10, -0.24, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // ── Eyebrows ───────────────────────────────────────────────────────────
+      _eyebrows(cx, cy) {
+        const { ctx } = this;
+        ctx.strokeStyle = '#2a1004'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+
+        ctx.beginPath();
+        ctx.moveTo(cx - 44, cy - 34);
+        ctx.bezierCurveTo(cx - 34, cy - 44, cx - 18, cy - 45, cx - 8, cy - 40);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(cx + 8, cy - 40);
+        ctx.bezierCurveTo(cx + 18, cy - 45, cx + 34, cy - 44, cx + 44, cy - 34);
+        ctx.stroke();
+      }
+
+      // ── Eyes ───────────────────────────────────────────────────────────────
+      _eyes(cx, cy) {
+        const { ctx } = this;
+        const eyeY = cy - 20;
+        const lx = cx - 23, rx = cx + 23;
+        const eW = 17, eH = 11;
+
+        // Blink factor
+        let hf = 1.0;
+        if      (this.blink.state === 1) hf = 0.22;
+        else if (this.blink.state === 2) hf = 0.04;
+        else if (this.blink.state === 3) hf = 0.52;
+
+        const gx = this.gaze.x * 2.8, gy = this.gaze.y * 1.4;
+
+        [lx, rx].forEach(ex => {
+          // Sclera
+          ctx.fillStyle = '#f0ebe4';
+          ctx.beginPath(); ctx.ellipse(ex, eyeY, eW, eH * hf, 0, 0, Math.PI * 2); ctx.fill();
+
+          if (hf > 0.07) {
+            // Iris
+            const ir = ctx.createRadialGradient(ex + gx * 0.4, eyeY + gy * 0.4, 1, ex + gx * 0.4, eyeY + gy * 0.4, 8.5);
+            ir.addColorStop(0, '#5d310e'); ir.addColorStop(0.5, '#3b1e08'); ir.addColorStop(1, '#210f02');
+            ctx.fillStyle = ir;
+            ctx.beginPath(); ctx.ellipse(ex + gx * 0.4, eyeY + gy * 0.4, Math.min(8.5, eW - 1.5), Math.min(8.5, eH - 0.5) * hf, 0, 0, Math.PI * 2); ctx.fill();
+
+            // Pupil
+            ctx.fillStyle = '#050200';
+            ctx.beginPath(); ctx.ellipse(ex + gx * 0.4, eyeY + gy * 0.4, 4.5, 4.5 * hf, 0, 0, Math.PI * 2); ctx.fill();
+
+            // Specular
+            ctx.fillStyle = 'rgba(255,255,255,0.78)';
+            ctx.beginPath(); ctx.ellipse(ex + gx * 0.4 - 2.4, eyeY + gy * 0.4 - 2.4, 2.1, 2.1 * hf, 0, 0, Math.PI * 2); ctx.fill();
+          }
+
+          // Upper eyelid skin
+          ctx.fillStyle = '#c87a58';
+          ctx.beginPath();
+          ctx.moveTo(ex - eW, eyeY);
+          ctx.bezierCurveTo(ex - eW * 0.5, eyeY - eH * hf * 1.12, ex + eW * 0.5, eyeY - eH * hf * 1.12, ex + eW, eyeY);
+          ctx.fill();
+
+          // Lid line
+          ctx.strokeStyle = 'rgba(28,7,0,0.52)';
+          ctx.lineWidth   = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(ex - eW, eyeY);
+          ctx.bezierCurveTo(ex - eW * 0.5, eyeY - eH * hf * 1.08, ex + eW * 0.5, eyeY - eH * hf * 1.08, ex + eW, eyeY);
+          ctx.stroke();
+        });
+      }
+
+      // ── Nose ───────────────────────────────────────────────────────────────
+      _nose(cx, cy) {
+        const { ctx } = this;
+        ctx.strokeStyle = 'rgba(0,0,0,0.20)'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(cx - 4, cy - 10); ctx.lineTo(cx - 4, cy + 11);
+        ctx.bezierCurveTo(cx - 4, cy + 15, cx + 4, cy + 15, cx + 4, cy + 11);
+        ctx.lineTo(cx + 4, cy - 10);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(0,0,0,0.10)';
+        ctx.beginPath();
+        ctx.ellipse(cx - 9, cy + 13, 5, 3, -0.35, 0, Math.PI * 2);
+        ctx.ellipse(cx + 9, cy + 13, 5, 3,  0.35, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // ── Mouth ──────────────────────────────────────────────────────────────
+      _mouth(cx, cy) {
+        const { ctx } = this;
+        const my = cy + 37, mw = 21, op = this.mouthOpen;
+
+        // Interior when open
+        if (op > 0.5) {
+          ctx.fillStyle = '#180606';
+          ctx.beginPath(); ctx.ellipse(cx, my + op * 0.28, mw * 0.82, op * 0.65, 0, 0, Math.PI * 2); ctx.fill();
+
+          if (op > 3.5) {
+            ctx.fillStyle = 'rgba(242,238,232,0.82)';
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(cx - mw * 0.62, my - 0.5, mw * 1.24, Math.min(op * 0.28, 4.5), 1);
+            else ctx.rect(cx - mw * 0.62, my - 0.5, mw * 1.24, Math.min(op * 0.28, 4.5));
+            ctx.fill();
+          }
+        }
+
+        // Upper lip
+        ctx.fillStyle = '#9a2a28';
+        ctx.beginPath();
+        ctx.moveTo(cx - mw, my);
+        ctx.bezierCurveTo(cx - mw * 0.6, my - 5.5, cx - mw * 0.2, my - 7.5, cx, my - 5.5);
+        ctx.bezierCurveTo(cx + mw * 0.2, my - 7.5, cx + mw * 0.6, my - 5.5, cx + mw, my);
+        ctx.bezierCurveTo(cx + mw * 0.55, my + 1, cx - mw * 0.55, my + 1, cx - mw, my);
+        ctx.fill();
+
+        // Lower lip
+        ctx.fillStyle = '#ae3838';
+        ctx.beginPath();
+        ctx.moveTo(cx - mw, my);
+        ctx.bezierCurveTo(cx - mw * 0.6, my + 4 + op * 0.55, cx, my + 6 + op * 0.65, cx, my + 6 + op * 0.65);
+        ctx.bezierCurveTo(cx, my + 6 + op * 0.65, cx + mw * 0.6, my + 4 + op * 0.55, cx + mw, my);
+        ctx.bezierCurveTo(cx + mw * 0.55, my + 1, cx - mw * 0.55, my + 1, cx - mw, my);
+        ctx.fill();
+
+        // Gloss
+        ctx.fillStyle = 'rgba(255,195,185,0.22)';
+        ctx.beginPath(); ctx.ellipse(cx, my - 3, mw * 0.48, 2.2, 0, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // ── Cheeks ─────────────────────────────────────────────────────────────
+      _cheeks(cx, cy) {
+        const { ctx } = this;
+        ctx.fillStyle = 'rgba(210,88,68,0.09)';
+        ctx.beginPath(); ctx.ellipse(cx - 44, cy + 18, 21, 12, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(cx + 44, cy + 18, 21, 12, 0, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // ── Frame overlay ──────────────────────────────────────────────────────
+      _frameOverlay(W, H) {
+        const { ctx } = this;
+
+        // Vignette
+        const vig = ctx.createRadialGradient(W / 2, H / 2, Math.min(W,H)*0.27, W/2, H/2, Math.min(W,H)*0.88);
+        vig.addColorStop(0, 'transparent'); vig.addColorStop(1, 'rgba(0,0,0,0.46)');
+        ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+
+        // Corner brackets
+        const m = 10, t = 18;
+        ctx.strokeStyle = this.speaking ? 'rgba(200,0,255,0.50)' : 'rgba(0,210,255,0.38)';
+        ctx.lineWidth = 2; ctx.lineCap = 'square';
+        ctx.beginPath();
+        ctx.moveTo(m, m+t); ctx.lineTo(m, m); ctx.lineTo(m+t, m);
+        ctx.moveTo(W-m-t, m); ctx.lineTo(W-m, m); ctx.lineTo(W-m, m+t);
+        ctx.moveTo(m, H-m-t); ctx.lineTo(m, H-m); ctx.lineTo(m+t, H-m);
+        ctx.moveTo(W-m-t, H-m); ctx.lineTo(W-m, H-m); ctx.lineTo(W-m, H-m-t);
+        ctx.stroke();
+
+        // LIVE dot
+        ctx.fillStyle = 'rgba(255,55,55,0.9)';
+        ctx.beginPath(); ctx.arc(m + 6, m + 6, 3.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '9px "Fira Code",monospace';
+        ctx.textAlign = 'left'; ctx.fillText('LIVE', m + 14, m + 10);
+
+        // AURA badge
+        const bW = 158, bH = 26, bx = W / 2 - bW / 2, by = H - 38;
+        ctx.fillStyle   = 'rgba(0,0,0,0.42)';
+        ctx.strokeStyle = this.speaking ? 'rgba(200,0,255,0.38)' : 'rgba(0,200,255,0.32)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(bx, by, bW, bH, 13);
+        else ctx.rect(bx, by, bW, bH);
+        ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = this.speaking ? 'rgba(215,0,255,0.88)' : 'rgba(0,210,255,0.88)';
+        ctx.font = '500 10px "Fira Code",monospace'; ctx.textAlign = 'center';
+        ctx.fillText('AURA · AI WELLNESS COUNSELOR', W / 2, by + 17);
+      }
+
+      // ── Update per-frame state ─────────────────────────────────────────────
+      _update() {
+        this.t += 0.024;
+        this.breathOffset = Math.sin(this.t * 0.68) * 3;
+
+        // Glow target
+        const gt = (this.speaking || this.listening) ? 1 : 0.3;
+        this.glowAlpha += (gt - this.glowAlpha) * 0.055;
+
+        // Blink
+        this.blink.timer++;
+        if (this.blink.state === 0 && this.blink.timer >= this.blink.nextBlink) {
+          this.blink.state = 1; this.blink.timer = 0;
+          this.blink.nextBlink = 140 + Math.random() * 220;
+        } else if (this.blink.state === 1) { this.blink.state = 2; }
+          else if (this.blink.state === 2) { this.blink.state = 3; }
+          else if (this.blink.state === 3) { this.blink.state = 0; this.blink.timer = 0; }
+
+        // Gaze drift
+        this.gaze.timer++;
+        if (this.gaze.timer >= this.gaze.next) {
+          this.gaze.tx = (Math.random() - 0.5) * 2.2;
+          this.gaze.ty = (Math.random() - 0.5) * 1.1;
+          this.gaze.timer = 0; this.gaze.next = 130 + Math.random() * 200;
+        }
+        this.gaze.x += (this.gaze.tx - this.gaze.x) * 0.042;
+        this.gaze.y += (this.gaze.ty - this.gaze.y) * 0.042;
+
+        // Mouth
+        const mo = this.speaking
+          ? Math.abs(Math.sin(this.t * 7.5 + Math.cos(this.t * 3.1) * 0.8)) * 10
+          : 0;
+        this.mouthOpen += (mo - this.mouthOpen) * (this.speaking ? 0.38 : 0.18);
+        if (this.mouthOpen < 0.08) this.mouthOpen = 0;
+      }
+
+      _animate() {
+        this._update();
+        this._frame();
+        this.raf = requestAnimationFrame(this._animate);
+      }
+
+      stop()         { if (this.raf) cancelAnimationFrame(this.raf); }
+      setSpeaking()  { this.speaking = true;  this.listening = false; }
+      setListening() { this.listening = true;  this.speaking = false; }
+      setIdle()      { this.speaking = false; this.listening = false; }
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // AUDIO VOLUME ANALYSIS
+    // ══════════════════════════════════════════════════════════════════════════
+    function startVolumeAnalysis(stream) {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioContext = new AudioContextClass();
+        analyserNode = audioContext.createAnalyser();
+        analyserNode.fftSize = 256;
+        
+        microphoneNode = audioContext.createMediaStreamSource(stream);
+        microphoneNode.connect(analyserNode);
+        
+        const bufferLength = analyserNode.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        
+        volumeCheckInterval = setInterval(() => {
+          if (session.active && session.isListening && analyserNode) {
+            analyserNode.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < bufferLength; i++) {
+              sum += dataArray[i];
+            }
+            let avg = sum / bufferLength;
+            let volumePct = Math.round((avg / 255) * 100);
+            speechStats.turnVolumeSamples.push(volumePct);
+          }
+        }, 100);
+      } catch (e) {
+        console.warn('Audio analysis initialization failed:', e);
+      }
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // SESSION START
+    // ══════════════════════════════════════════════════════════════════════════
+    async function startSession() {
+      const btn = document.getElementById('startBtn');
+      btn.disabled = true; btn.innerText = 'Connecting...';
+
+      // Camera & Microphone permission
+      try {
+        // Request video and audio combined to use audio for volume profiling
+        const combinedStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 320, height: 240, facingMode: 'user' },
+          audio: true
+        });
+        
+        session.videoStream = combinedStream;
+        session.audioStream = combinedStream;
+
+        const vid = document.getElementById('userVideo');
+        vid.srcObject = combinedStream;
+        await new Promise(r => { vid.onloadedmetadata = r; });
+      } catch(e) {
+        alert('📷 Camera and Microphone permissions are required for the AI video call and speech analysis.\nPlease grant access and try again.');
+        btn.disabled = false; btn.innerText = session.lang === 'hi' ? 'वीडियो कॉल शुरू करें' : 'Start Video Call';
+        return;
+      }
+
+      // Swap screens
+      document.getElementById('welcomeScreen').classList.add('hidden');
+      document.getElementById('callInterface').classList.remove('hidden');
+      document.getElementById('pipContainer').classList.remove('hidden');
+
+      // Size avatar canvas (portrait ~4:5 ratio)
+      const mc   = document.getElementById('avatarCanvas');
+      const maxH = Math.min(window.innerHeight * 0.67, 500);
+      const maxW = Math.min(maxH * 0.76, window.innerWidth * 0.52, 380);
+      mc.height  = Math.round(maxH);
+      mc.width   = Math.round(maxW);
+      const cont = document.getElementById('avatarContainer');
+      cont.style.width  = mc.width  + 'px';
+      cont.style.height = mc.height + 'px';
+
+      session.avatar = new HumanoidAvatar(mc);
+      session.active = true;
+
+      // Start audio analysis
+      startVolumeAnalysis(session.audioStream);
+
+      // Load face-api (non-blocking)
+      initFaceApi();
+
+      // Setup speech recognition
+      const sttOk = initSpeechRecognition();
+      if (!sttOk) document.getElementById('manualInputArea').classList.remove('hidden');
+
+      // Opening greeting
+      let greeting = "Hello! I'm Aura, your AI wellness counselor. I'm so glad you're here today. Could you start by telling me your name?";
+      if (session.lang === 'hi') {
+        greeting = "नमस्ते! मैं ऑरा हूँ, आपकी AI वेलनेस काउंसलर। आज आपसे मिलकर बहुत खुशी हुई। क्या आप मुझे अपना नाम बता सकते हैं?";
+      }
+      await auraSpeak(greeting);
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // STATUS HELPER
+    // ══════════════════════════════════════════════════════════════════════════
+    function setStatus(mode, subtitle) {
+      const configs = {
+        idle:      { dot: 'bg-slate-600',  border: 'border-slate-800',      color: 'text-slate-500',  label: 'Idle'              },
+        listening: { dot: 'bg-cyan-400',   border: 'border-cyan-500/30',    color: 'text-cyan-400',   label: 'Listening to you...' },
+        thinking:  { dot: 'bg-amber-400',  border: 'border-amber-500/30',   color: 'text-amber-400',  label: 'Aura is thinking...' },
+        speaking:  { dot: 'bg-purple-400', border: 'border-purple-500/30',  color: 'text-purple-400', label: 'Aura is speaking'   },
+      };
+      const c = configs[mode] || configs.idle;
+      document.getElementById('statusDot').className   = `w-1.5 h-1.5 rounded-full flex-shrink-0 ${c.dot}`;
+      document.getElementById('statusLabel').innerText  = c.label;
+      document.getElementById('statusIndicator').className =
+        `flex items-center gap-2 text-xs font-mono px-4 py-1.5 rounded-full border bg-slate-950/80 ${c.border} ${c.color}`;
+
+      // Avatar frame glow
+      const frame = document.getElementById('avatarContainer');
+      if (frame) frame.classList.toggle('speaking', mode === 'speaking');
+
+      if (subtitle !== undefined) {
+        document.getElementById('subtitleText').innerText  = subtitle || '';
+        document.getElementById('subtitleBox').style.opacity = subtitle ? '1' : '0';
+      }
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // SPEECH RECOGNITION
+    // ══════════════════════════════════════════════════════════════════════════
+    function initSpeechRecognition() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return false;
+
+      session.recognition = new SR();
+      Object.assign(session.recognition, {
+        continuous: false, 
+        interimResults: true, 
+        lang: session.lang === 'hi' ? 'hi-IN' : 'en-US', 
+        maxAlternatives: 1,
+      });
+
+      session.recognition.onstart = () => {
+        session.isListening = true;
+        session.avatar?.setListening();
+        setStatus('listening', '');
+
+        // Start profiling this turn
+        speechStats.turnStartTime = performance.now();
+        speechStats.turnVolumeSamples = [];
+      };
+
+      session.recognition.onresult = (evt) => {
+        let interim = '', final = '';
+        for (let i = evt.resultIndex; i < evt.results.length; i++) {
+          const t = evt.results[i][0].transcript;
+          if (evt.results[i].isFinal) final += t; else interim += t;
+        }
+        if (final)   session.currentText = final;
+        if (interim) setStatus('listening', `${session.lang === 'hi' ? 'आप' : 'You'}: "${interim.trim()}..."`);
+      };
+
+      session.recognition.onerror = (e) => {
+        session.isListening = false;
+        if (session.active && !session.isSpeaking && e.error !== 'aborted')
+          setTimeout(startListening, 1200);
+      };
+
+      session.recognition.onend = () => {
+        session.isListening = false;
+        if (!session.active || session.isSpeaking) return;
+        const text = session.currentText.trim();
+        session.currentText = '';
+        
+        // Finalize turn stats
+        const durationSec = (performance.now() - speechStats.turnStartTime) / 1000;
+        const words = text.split(/\s+/).filter(Boolean);
+        const wordCount = words.length;
+        
+        // Calculate Words Per Minute
+        const wpm = durationSec > 1.0 ? Math.round((wordCount / durationSec) * 60) : 0;
+        
+        // Count Hesitation Fillers
+        let hesitations = 0;
+        if (wordCount > 0) {
+          const fillers = ["um", "uh", "ah", "like", "er", "hmm", "well", "तो", "मतलब", "यार", "हूँ"];
+          words.forEach(w => {
+            const clean = w.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"");
+            if (fillers.includes(clean)) hesitations++;
+          });
+        }
+
+        // Calculate Average Volume
+        let avgVolume = 50;
+        if (speechStats.turnVolumeSamples.length > 0) {
+          const sum = speechStats.turnVolumeSamples.reduce((a, b) => a + b, 0);
+          avgVolume = Math.round(sum / speechStats.turnVolumeSamples.length);
+        }
+
+        // Log turn stats
+        if (wordCount > 0 && durationSec > 1.0) {
+          speechStats.turns.push({
+            wpm: wpm,
+            hesitations: hesitations,
+            volume: avgVolume,
+            duration: durationSec
+          });
+          console.log(`Speech Turn: ${wpm} WPM, ${hesitations} hesitations, Avg Vol ${avgVolume}/100, Dur ${durationSec.toFixed(1)}s`);
+        }
+
+        if (text) sendToAura(text); else setTimeout(startListening, 600);
+      };
+
+      return true;
+    }
+
+    function startListening() {
+      if (!session.active || session.isSpeaking || session.isListening || !session.recognition) return;
+      try { 
+        session.recognition.lang = session.lang === 'hi' ? 'hi-IN' : 'en-US';
+        session.recognition.start(); 
+      } catch(e) { 
+        setTimeout(startListening, 1000); 
+      }
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // TEXT-TO-SPEECH
+    // ══════════════════════════════════════════════════════════════════════════
+    function getBestVoice() {
+      const voices = speechSynthesis.getVoices();
+      if (session.lang === 'hi') {
+        // Look for Hindi or Indian English voices
+        return voices.find(v => v.lang === 'hi-IN' || v.lang.startsWith('hi'))
+            || voices.find(v => v.lang === 'en-IN')
+            || (voices.length ? voices[0] : null);
+      } else {
+        const kw = ['female','zira','aria','hazel','susan','samantha','victoria','karen','moira','tessa','google uk english female'];
+        return voices.find(v => v.lang === 'en-GB' && kw.some(k => v.name.toLowerCase().includes(k)))
+            || voices.find(v => v.lang.startsWith('en') && kw.some(k => v.name.toLowerCase().includes(k)))
+            || voices.find(v => v.lang === 'en-GB')
+            || (voices.length ? voices[0] : null);
+      }
+    }
+
+    async function auraSpeak(text) {
+      if (!session.active) return;
+      if (session.recognition && session.isListening) {
+        try { session.recognition.abort(); } catch(e) {}
+        session.isListening = false;
+      }
+      speechSynthesis.cancel();
+
+      session.isSpeaking = true;
+      session.avatar?.setSpeaking();
+      setStatus('speaking', `"${text}"`);
+
+      await new Promise(resolve => {
+        const utt = new SpeechSynthesisUtterance(text);
+        Object.assign(utt, { 
+          lang: session.lang === 'hi' ? 'hi-IN' : 'en-GB', 
+          rate: session.lang === 'hi' ? 0.90 : 0.93, 
+          pitch: 1.05 
+        });
+        const v = getBestVoice();
+        if (v) utt.voice = v;
+
+        let done = false;
+        const finish = () => { if (!done) { done = true; resolve(); } };
+        const safeMs  = Math.max(4000, text.length * 80);
+        const timeout = setTimeout(finish, safeMs);
+        utt.onend  = () => { clearTimeout(timeout); finish(); };
+        utt.onerror = finish;
+        speechSynthesis.speak(utt);
+      });
+
+      session.isSpeaking = false;
+      session.avatar?.setListening();
+      setStatus('listening', '');
+      if (session.active) startListening();
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // SEND MESSAGE → /api/chat
+    // ══════════════════════════════════════════════════════════════════════════
+    async function sendToAura(userText) {
+      if (!userText.trim()) { startListening(); return; }
+      const text = userText.trim();
+
+      session.transcript.push({ role: 'user', text });
+      session.groqHistory.push({ role: 'user', content: text });
+      session.avatar?.setIdle();
+      setStatus('thinking', '');
+
+      let reply = session.lang === 'hi' ? "मैं सुन रही हूँ। क्या आप थोड़ा और बता सकते हैं?" : "I hear you. Could you tell me a little more?", isComplete = false;
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            text, 
+            emotion: session.currentEmotion, 
+            history: session.groqHistory.slice(0, -1),
+            lang: session.lang
+          }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data.reply) reply = data.reply;
+        isComplete = !!data.session_complete;
+      } catch(e) {
+        console.error('Chat API error:', e);
+        reply = session.lang === 'hi' ? "मैं यहाँ आपके साथ हूँ। कृपया जारी रखें।" : "I'm right here with you. Please go on.";
+      }
+
+      session.transcript.push({ role: 'assistant', text: reply });
+      session.groqHistory.push({ role: 'assistant', content: reply });
+      await auraSpeak(reply);
+
+      // Show "Generate Report" banner when Aura signals interview is done
+      if (isComplete) {
+        const banner = document.getElementById('reportReadyBanner');
+        banner.classList.add('visible');
+      }
+    }
+
+    // Manual text fallback
+    function sendManualMessage() {
+      const inp = document.getElementById('manualInput');
+      const t   = inp.value.trim();
+      if (t) { inp.value = ''; sendToAura(t); }
+    }
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && document.activeElement === document.getElementById('manualInput'))
+        sendManualMessage();
+    });
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // FACE-API — emotion detection on PIP feed
+    // ══════════════════════════════════════════════════════════════════════════
+    async function initFaceApi() {
+      try {
+        const MODEL_URL = '/static/weights';
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL),
+        ]);
+
+        const video = document.getElementById('userVideo');
+        const overlay = document.getElementById('faceCanvas');
+        const badge   = document.getElementById('emotionBadge');
+
+        session.faceInterval = setInterval(async () => {
+          if (!video || video.paused || !session.active) return;
+          overlay.width  = video.offsetWidth  || 160;
+          overlay.height = video.offsetHeight || 210;
+
+          try {
+            const det = await faceapi
+              .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.4 }))
+              .withFaceExpressions();
+            const ctx = overlay.getContext('2d');
+            ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+            if (det && det.length > 0) {
+              const d = det[0];
+              const sx = overlay.width  / (video.videoWidth  || 320);
+              const sy = overlay.height / (video.videoHeight || 240);
+              const b  = d.detection.box;
+
+              ctx.strokeStyle = 'rgba(0,240,255,0.8)'; ctx.lineWidth = 1.5;
+              ctx.strokeRect(b.x * sx, b.y * sy, b.width * sx, b.height * sy);
+              _corners(ctx, b, sx, sy);
+
+              let dom = 'neutral', maxS = 0;
+              for (const [em, sc] of Object.entries(d.expressions)) if (sc > maxS) { maxS = sc; dom = em; }
+              session.currentEmotion = dom;
+              session.emotionLog.push({ emotion: dom });
+              if (badge) badge.innerText = dom.toUpperCase();
+            }
+          } catch(e) { /* silent */ }
+        }, 900);
+      } catch(e) { console.warn('face-api failed to load from local static weights:', e); }
+    }
+
+    function _corners(ctx, b, sx, sy) {
+      const x = b.x*sx, y = b.y*sy, w = b.width*sx, h = b.height*sy, t = 9;
+      ctx.strokeStyle = 'rgba(0,240,255,0.9)'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x,y+t); ctx.lineTo(x,y); ctx.lineTo(x+t,y);
+      ctx.moveTo(x+w-t,y); ctx.lineTo(x+w,y); ctx.lineTo(x+w,y+t);
+      ctx.moveTo(x,y+h-t); ctx.lineTo(x,y+h); ctx.lineTo(x+t,y+h);
+      ctx.moveTo(x+w-t,y+h); ctx.lineTo(x+w,y+h); ctx.lineTo(x+w,y+h-t);
+      ctx.stroke();
+    }
+
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // END SESSION → /api/report → dashboard
+    // ══════════════════════════════════════════════════════════════════════════
+    async function endSession() {
+      if (!session.active) return;
+      session.active = false;
+
+      try { session.recognition?.abort(); } catch(e) {}
+      speechSynthesis.cancel();
+      if (session.faceInterval) clearInterval(session.faceInterval);
+      if (volumeCheckInterval) clearInterval(volumeCheckInterval);
+      
+      // Stop and clean up audio context
+      if (audioContext) {
+        try { audioContext.close(); } catch(e) {}
+      }
+
+      session.videoStream?.getTracks().forEach(t => t.stop());
+      session.avatar?.setIdle();
+
+      document.getElementById('loadingOverlay').classList.remove('hidden');
+
+      // Compile final speech metrics
+      let totalTurns = speechStats.turns.length;
+      let totalWpm = 0;
+      let totalVolume = 0;
+      let totalHesitations = 0;
+      let totalDuration = 0;
+
+      speechStats.turns.forEach(t => {
+        totalWpm += t.wpm;
+        totalVolume += t.volume;
+        totalHesitations += t.hesitations;
+        totalDuration += t.duration;
+      });
+
+      const avgWpm = totalTurns > 0 ? Math.round(totalWpm / totalTurns) : 0;
+      const avgVolume = totalTurns > 0 ? Math.round(totalVolume / totalTurns) : 50;
+
+      const finalSpeechMetrics = {
+        avg_wpm: avgWpm,
+        hesitations: totalHesitations,
+        avg_volume: avgVolume,
+        total_duration: totalDuration
+      };
+
+      let report = null;
+      try {
+        const res = await fetch('/api/report', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            transcript: session.transcript, 
+            emotion_log: session.emotionLog,
+            speech_metrics: finalSpeechMetrics,
+            lang: session.lang
+          }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        report = await res.json();
+      } catch(e) {
+        console.error('Report error:', e);
+        report = {
+          id: 'rep_fallback_' + Math.random().toString(36).substr(2, 6),
+          overall_status: 'Moderate Concern', severity_score: 5, user_name: 'Friend',
+          mood_summary: 'A range of emotions were experienced during this session.',
+          speech_analysis: 'You engaged openly throughout the conversation.',
+          face_analysis: 'Your expressions showed authentic emotions during the session.',
+          key_concerns: [], positive_factors: ['Engaged with the session', 'Reached out for support'],
+          user_friendly_summary: "Thank you for taking this important step today — it shows real courage. Whatever you're going through, you don't have to face it alone. There are warm, caring people ready to support you. You are not alone in this.",
+          needs_professional_help: true,
+          professional_recommendation: "Based on what you've shared, speaking with a professional counselor could be really helpful. They can provide personalized support and practical tools just for you.",
+        };
+      }
+
+      localStorage.setItem('emotionSenseReport', JSON.stringify(report));
+      window.location.href = `/dashboard?id=${report.id || ''}`;
+    }
+  </script>
+</body>
+</html>

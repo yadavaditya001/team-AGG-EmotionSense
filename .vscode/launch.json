@@ -1,0 +1,24 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "▶ EmotionSense (Chrome + Flask)",
+            "url": "http://localhost:5000",
+            "webRoot": "${workspaceFolder}/templates",
+            "preLaunchTask": "Start EmotionSense Server",
+            "runtimeArgs": [
+                "--allow-insecure-localhost"
+            ]
+        },
+        {
+            "type": "msedge",
+            "request": "launch",
+            "name": "▶ EmotionSense (Edge + Flask)",
+            "url": "http://localhost:5000",
+            "webRoot": "${workspaceFolder}/templates",
+            "preLaunchTask": "Start EmotionSense Server"
+        }
+    ]
+}

@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmotionSense v3.0 – Your Wellness Report</title>
+  <meta name="description" content="Your personal AI-generated mental wellness report from EmotionSense.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Inter:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { slate: { 950: '#020617' } },
+          fontFamily: {
+            sans:   ['Inter',  'sans-serif'],
+            outfit: ['Outfit', 'sans-serif'],
+            mono:   ['Fira Code', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .cyber-grid {
+      background-image:
+        linear-gradient(to right, rgba(0,240,255,0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,240,255,0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .glassmorphism {
+      background: rgba(15,23,42,0.65);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .anim-1 { animation: fadeInUp 0.55s ease 0.05s both; }
+    .anim-2 { animation: fadeInUp 0.55s ease 0.14s both; }
+    .anim-3 { animation: fadeInUp 0.55s ease 0.22s both; }
+    .anim-4 { animation: fadeInUp 0.55s ease 0.30s both; }
+    .anim-5 { animation: fadeInUp 0.55s ease 0.38s both; }
+
+    .card-hover { transition: transform 0.22s ease, box-shadow 0.22s ease; }
+    .card-hover:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(0,0,0,0.35); }
+
+    /* Status banner colours */
+    .banner-healthy  { background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(4,60,40,0.06)); border-color: rgba(16,185,129,0.38); }
+    .banner-moderate { background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(80,50,5,0.06));  border-color: rgba(245,158,11,0.38); }
+    .banner-concern  { background: linear-gradient(135deg, rgba(239,68,68,0.12),  rgba(100,20,20,0.06)); border-color: rgba(239,68,68,0.38); }
+
+    /* Severity bar fill animation */
+    @keyframes fillBar { from { width: 0%; } to { width: var(--target-w); } }
+    .severity-fill { animation: fillBar 1s ease 0.5s both; }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,240,255,0.18); border-radius: 4px; }
+
+    @keyframes slideIn {
+      from { transform: translateX(120%); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+    .slide-in { animation: slideIn 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans cyber-grid">
+
+  <!-- Ambient glows -->
+  <div class="fixed top-0 left-1/4 w-[600px] h-[600px] bg-cyan-500/4 rounded-full blur-[140px] pointer-events-none -translate-x-1/2 -translate-y-1/2"></div>
+  <div class="fixed bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-500/4 rounded-full blur-[140px] pointer-events-none translate-x-1/2 translate-y-1/2"></div>
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
+  <header class="sticky top-0 z-30 border-b border-slate-900 bg-slate-950/88 backdrop-blur-md px-5 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center font-outfit font-black text-sm shadow-[0_0_18px_rgba(6,182,212,0.55)]">ES</div>
+      <span class="font-outfit font-bold text-lg tracking-tight">EmotionSense
+        <span class="text-cyan-400 text-xs font-mono align-super border border-cyan-500/30 px-1 rounded bg-cyan-950/20">v3.0</span>
+      </span>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <span id="reportDate" class="text-xs font-mono text-slate-500 uppercase hidden md:block"></span>
+      <button onclick="startNewSession()"
+        class="text-xs font-outfit font-semibold text-slate-400 hover:text-cyan-400 border border-slate-800 hover:border-cyan-500/40 bg-slate-950/60 hover:bg-slate-900/40 px-4 py-2 rounded-xl transition">
+        + New Session
+      </button>
+    </div>
+  </header>
+
+  <!-- ══ MAIN REPORT ══════════════════════════════════════════════════════════ -->
+  <main class="max-w-4xl mx-auto px-4 md:px-6 py-8 pb-16 space-y-5 relative">
+
+    <!-- ── 1. STATUS BANNER ─────────────────────────────────────────────────── -->
+    <div id="statusBanner" class="anim-1 border rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-5 md:gap-6">
+      <div id="bannerIcon" class="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0 shadow-lg border"></div>
+      <div class="flex-1 min-w-0">
+        <p id="bannerLabel" class="text-[11px] font-mono uppercase tracking-widest mb-1 opacity-75">Mental Wellness Assessment</p>
+        <h2 id="bannerTitle" class="font-outfit font-black text-3xl md:text-4xl tracking-tight leading-none mb-2">Loading...</h2>
+        <p id="bannerSubtitle" class="text-sm md:text-base leading-relaxed max-w-2xl opacity-80">Retrieving your personalised wellness analysis...</p>
+      </div>
+      <div id="bannerBadge" class="px-5 py-2.5 border rounded-full font-mono text-xs font-bold uppercase tracking-wider flex-shrink-0">—</div>
+    </div>
+
+    <!-- ── 2. SEVERITY SCORE ─────────────────────────────────────────────────── -->
+    <div class="anim-2 glassmorphism rounded-2xl p-6 card-hover">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <p class="text-[11px] font-mono text-slate-500 uppercase tracking-widest">Wellness Score</p>
+          <h3 class="font-outfit font-bold text-lg text-slate-100 mt-0.5">How are you doing?</h3>
+        </div>
+        <div id="scoreCircle" class="w-14 h-14 rounded-full flex items-center justify-center font-outfit font-black text-xl border-2 border-slate-700 bg-slate-900 flex-shrink-0"></div>
+      </div>
+
+      <!-- Bar track -->
+      <div class="relative h-4 bg-slate-900 rounded-full overflow-hidden">
+        <div id="severityFill" class="severity-fill h-full rounded-full" style="--target-w:0%;width:0%"></div>
+      </div>
+
+      <div class="flex justify-between mt-2 text-[10px] font-mono text-slate-600">
+        <span>0 — Very Healthy</span>
+        <span>5 — Moderate</span>
+        <span>10 — High Concern</span>
+      </div>
+
+      <p id="moodSummaryText" class="mt-4 text-slate-300 text-sm leading-relaxed"></p>
+    </div>
+
+    <!-- ── 3. WELL-BEING SUMMARY ──────────────────────────────────────────────── -->
+    <div class="anim-3 glassmorphism rounded-2xl p-6 md:p-7 card-hover relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-44 h-44 bg-cyan-400/4 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="flex items-center gap-3 mb-4">
+        <span class="text-2xl">💙</span>
+        <div>
+          <p class="text-[11px] font-mono text-cyan-400 uppercase tracking-widest">A personal note from Aura</p>
+          <h3 class="font-outfit font-bold text-xl text-slate-100">Your Well-Being Summary</h3>
+        </div>
+      </div>
+      <p id="summaryText" class="text-slate-200 text-base md:text-lg leading-relaxed">Retrieving your summary...</p>
+      <div class="mt-5 pt-4 border-t border-slate-800/60 flex items-center gap-2 text-[10px] font-mono text-slate-600">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-500/60"></span>
+        GENERATED BY AURA · AI WELLNESS COUNSELOR · EMOTIONSENSE v3.0
+      </div>
+    </div>
+
+    <!-- ── 4. TWO-COLUMN ANALYSIS ─────────────────────────────────────────────── -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 anim-4">
+
+      <!-- Face Analysis -->
+      <div class="glassmorphism rounded-2xl p-5 md:p-6 card-hover relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-28 h-28 bg-purple-400/5 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="flex items-start justify-between mb-4">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-purple-950/60 border border-purple-500/30 flex items-center justify-center text-lg flex-shrink-0">😊</div>
+            <div>
+              <p class="text-[10px] font-mono text-purple-400 uppercase tracking-wider">Biometric Track 01</p>
+              <h4 class="font-outfit font-bold text-base text-slate-100 leading-tight">Facial Expression Analysis</h4>
+            </div>
+          </div>
+          <div class="px-2 py-0.5 bg-purple-950/50 border border-purple-800/40 text-purple-400 text-[9px] font-mono rounded uppercase flex-shrink-0">FACE DATA</div>
+        </div>
+        <p id="faceText" class="text-slate-300 text-sm leading-relaxed">Loading...</p>
+        <div class="mt-4 p-3 bg-purple-950/20 border border-purple-900/30 rounded-xl">
+          <p class="text-[10px] font-mono text-purple-400 uppercase tracking-wider mb-1">What this means</p>
+          <p class="text-slate-400 text-xs leading-relaxed">Your face naturally expresses emotions even when words fall short. These insights help us understand your inner emotional state.</p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-800/50 text-[10px] font-mono text-slate-700">POWERED BY FACE-API.JS</div>
+      </div>
+
+      <!-- Speech Analysis -->
+      <div class="glassmorphism rounded-2xl p-5 md:p-6 card-hover relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-28 h-28 bg-cyan-400/5 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="flex items-start justify-between mb-4">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-cyan-950/60 border border-cyan-500/30 flex items-center justify-center text-lg flex-shrink-0">🎙️</div>
+            <div>
+              <p class="text-[10px] font-mono text-cyan-400 uppercase tracking-wider">Linguistic Track 02</p>
+              <h4 class="font-outfit font-bold text-base text-slate-100 leading-tight">Speech &amp; Conversation Analysis</h4>
+            </div>
+          </div>
+          <div class="px-2 py-0.5 bg-cyan-950/50 border border-cyan-800/40 text-cyan-400 text-[9px] font-mono rounded uppercase flex-shrink-0">SPEECH DATA</div>
+        </div>
+        <p id="speechText" class="text-slate-300 text-sm leading-relaxed">Loading...</p>
+        <div class="mt-4 p-3 bg-cyan-950/20 border border-cyan-900/30 rounded-xl">
+          <p class="text-[10px] font-mono text-cyan-400 uppercase tracking-wider mb-1">What this means</p>
+          <p class="text-slate-400 text-xs leading-relaxed">The way you express yourself verbally provides valuable insight into your emotional state and coping style during this session.</p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-800/50 text-[10px] font-mono text-slate-700">POWERED BY GROQ LLAMA 3</div>
+      </div>
+
+    </div>
+
+    <!-- ── 5. KEY CONCERNS + POSITIVE FACTORS ──────────────────────────────────── -->
+    <div id="insightGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4 anim-4 hidden">
+
+      <!-- Key Concerns -->
+      <div id="concernsCard" class="glassmorphism rounded-2xl p-5 card-hover hidden">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-lg">⚠️</span>
+          <h4 class="font-outfit font-bold text-base text-slate-100">Areas of Attention</h4>
+        </div>
+        <ul id="concernsList" class="space-y-2"></ul>
+      </div>
+
+      <!-- Positive Factors -->
+      <div id="strengthsCard" class="glassmorphism rounded-2xl p-5 card-hover hidden">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-lg">💪</span>
+          <h4 class="font-outfit font-bold text-base text-slate-100">Your Strengths</h4>
+        </div>
+        <ul id="strengthsList" class="space-y-2"></ul>
+      </div>
+
+    </div>
+
+    <!-- ── 6. SHIVANGI MA'AM CONSULTATION CARD (conditional) ───────────────────── -->
+    <div id="consultCard" class="hidden anim-5 glassmorphism rounded-2xl p-6 md:p-7 relative overflow-hidden border border-orange-500/20 bg-gradient-to-tr from-orange-950/20 via-slate-950 to-amber-950/10 card-hover">
+
+      <div class="absolute top-0 right-0 w-48 h-48 bg-orange-500/5 rounded-full blur-2xl pointer-events-none"></div>
+
+      <!-- Header -->
+      <div class="flex items-center gap-2 mb-5">
+        <span class="text-lg text-orange-400">🩺</span>
+        <div>
+          <p class="text-[11px] font-mono text-orange-400/80 uppercase tracking-widest">Professional Recommendation</p>
+          <h3 class="font-outfit font-bold text-xl text-slate-100">We Recommend Speaking to a Counselor</h3>
+        </div>
+      </div>
+
+      <!-- Recommendation message -->
+      <p id="consultMsg" class="text-slate-300 text-sm leading-relaxed mb-6"></p>
+
+      <!-- Shivangi Ma'am Profile Card -->
+      <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row items-start gap-5 mb-5">
+
+        <!-- Avatar -->
+        <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-400/80 to-rose-500/80 flex items-center justify-center text-4xl flex-shrink-0 shadow-[0_0_20px_rgba(249,115,22,0.25)]">
+          👩‍⚕️
+        </div>
+
+        <!-- Details -->
+        <div class="flex-1 min-w-0">
+          <h4 class="font-outfit font-extrabold text-xl text-slate-100">Shivangi Ma'am</h4>
+          <p class="text-orange-300/90 text-sm font-semibold mt-0.5">Professional Mental Health &amp; Wellbeing Consultant</p>
+
+          <div class="mt-3 space-y-1.5 text-xs font-mono">
+            <div class="flex items-center gap-2 text-slate-400">
+              <span class="text-orange-400">🏛️</span>
+              <span>IIBM (Indian Institute of Business Management), Patna</span>
+            </div>
+            <div class="flex items-center gap-2 text-slate-400">
+              <span class="text-orange-400">🏥</span>
+              <span>ZHI (Zonal Health Institute), Patna, Bihar</span>
+            </div>
+            <div class="flex items-center gap-2 text-slate-400">
+              <span class="text-orange-400">📍</span>
+              <span>Patna, Bihar, India</span>
+            </div>
+          </div>
+
+          <p class="text-slate-400 text-xs leading-relaxed mt-3">
+            Shivangi Ma'am is a trusted and compassionate mental health professional specialising in student wellness, emotional resilience, and wellbeing counseling. Her warm, non-judgmental approach has helped countless students navigate difficult times.
+          </p>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <button onclick="bookConsultation()"
+        class="w-full py-4 bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500 text-white rounded-xl font-outfit font-bold text-sm tracking-wide uppercase shadow-[0_0_20px_rgba(249,115,22,0.3)] hover:shadow-[0_0_30px_rgba(249,115,22,0.5)] transition-all hover:scale-[1.02]">
+        Request Consultation with Shivangi Ma'am →
+      </button>
+
+      <p class="text-slate-600 text-[10px] font-mono text-center mt-3">Your data is handled with complete privacy and confidentiality</p>
+    </div>
+
+    <!-- ── 7. SUPPORTIVE RESOURCES ────────────────────────────────────────────── -->
+    <div class="anim-5 glassmorphism rounded-2xl p-5 md:p-6 card-hover relative overflow-hidden">
+      <div class="flex flex-col md:flex-row items-start md:items-center gap-5 md:gap-8">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-amber-400">🤝</span>
+            <h4 class="font-outfit font-bold text-base text-slate-100">You Are Never Alone</h4>
+          </div>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Remember — seeking support is one of the bravest things you can do. If you ever feel overwhelmed, please reach out to someone you trust or one of these free helplines:
+          </p>
+          <div class="mt-3 flex flex-wrap gap-2 text-[11px] font-mono">
+            <span class="px-3 py-1.5 bg-slate-900 border border-slate-800 text-slate-400 rounded-lg">📞 iCall: 9152987821</span>
+            <span class="px-3 py-1.5 bg-slate-900 border border-slate-800 text-slate-400 rounded-lg">💬 Vandrevala: 1860-2662-345</span>
+            <span class="px-3 py-1.5 bg-slate-900 border border-slate-800 text-slate-400 rounded-lg">🌐 NIMHANS: 080-46110007</span>
+          </div>
+        </div>
+        <div class="flex flex-col gap-2.5 flex-shrink-0 w-full md:w-auto">
+          <button onclick="startNewSession()"
+            class="w-full px-7 py-3 bg-gradient-to-r from-cyan-700 to-indigo-700 hover:from-cyan-600 hover:to-indigo-600 text-white rounded-xl font-outfit font-bold text-sm uppercase tracking-wide shadow-[0_0_18px_rgba(6,182,212,0.2)] hover:shadow-[0_0_26px_rgba(6,182,212,0.35)] transition-all">
+            Start New Session
+          </button>
+          <button onclick="window.print()"
+            class="w-full px-7 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 rounded-xl font-outfit font-semibold text-sm uppercase tracking-wide transition">
+            Download Report
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Toast notification -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 max-w-xs glassmorphism p-4 rounded-2xl border border-emerald-500/30 flex items-start gap-3 shadow-2xl translate-x-[120%] opacity-0 pointer-events-none transition-all duration-300">
+    <div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-base flex-shrink-0">✓</div>
+    <div>
+      <p class="font-outfit font-bold text-sm text-emerald-400">Report Ready</p>
+      <p class="text-xs text-slate-400 mt-0.5">Your wellness analysis is complete.</p>
+    </div>
+  </div>
+
+  <!-- Booking toast -->
+  <div id="bookingToast" class="fixed bottom-6 right-6 z-50 max-w-xs glassmorphism p-4 rounded-2xl border border-orange-500/30 flex items-start gap-3 shadow-2xl translate-x-[120%] opacity-0 pointer-events-none transition-all duration-300">
+    <div class="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400 text-base flex-shrink-0">📅</div>
+    <div>
+      <p class="font-outfit font-bold text-sm text-orange-400">Request Sent</p>
+      <p class="text-xs text-slate-400 mt-0.5">Shivangi Ma'am's office will contact you shortly.</p>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       DASHBOARD CONTROLLER
+       ══════════════════════════════════════════════════════════════════════════ -->
+  <script>
+    'use strict';
+
+    // ── Load & Initialize Report ─────────────────────────────────────────────
+    async function initDashboard() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const reportId = urlParams.get('id');
+      
+      let report = null;
+
+      if (reportId) {
+        try {
+          const res = await fetch(`/api/counselor/reports/${reportId}`);
+          if (res.ok) {
+            report = await res.json();
+          }
+        } catch(e) {
+          console.error('Failed to fetch report from server:', e);
+        }
+      }
+
+      if (!report) {
+        try {
+          const raw = localStorage.getItem('emotionSenseReport');
+          if (raw) report = JSON.parse(raw);
+        } catch(e) {
+          console.error('Parse error:', e);
+        }
+      }
+
+      if (!report) {
+        report = {
+          overall_status: 'Moderate Concern', severity_score: 5, user_name: 'Friend',
+          mood_summary: 'No session data found. Please complete a video call session first.',
+          speech_analysis: 'No speech data was captured. Please ensure your microphone is enabled during the session.',
+          face_analysis: 'No facial expression data was captured. Please ensure your camera is enabled.',
+          key_concerns: [], positive_factors: [],
+          user_friendly_summary: "It looks like we don't have a session on record yet. Start a new session whenever you're ready — Aura will be here for you.",
+          needs_professional_help: false,
+          professional_recommendation: "Take good care of yourself today.",
+        };
+      }
+
+      renderDashboard(report);
+    }
+
+    function renderDashboard(report) {
+      // ── Populate date ────────────────────────────────────────────────────────
+      const dateEl = document.getElementById('reportDate');
+      if (dateEl) dateEl.innerText = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase();
+
+      // ── Severity score ───────────────────────────────────────────────────────
+      const score     = Math.min(10, Math.max(0, parseInt(report.severity_score) || 5));
+      const pct       = score * 10;
+      const scoreFill = document.getElementById('severityFill');
+      const scoreCir  = document.getElementById('scoreCircle');
+
+      // Clear existing color classes
+      scoreFill.className = "severity-fill h-full rounded-full";
+      
+      let barColor = 'bg-emerald-500';
+      let scoreColor = 'text-emerald-400 border-emerald-500/40';
+      if (score >= 7) { 
+        barColor = 'bg-red-500'; 
+        scoreColor = 'text-red-400 border-red-500/40'; 
+      } else if (score >= 4) { 
+        barColor = 'bg-amber-500'; 
+        scoreColor = 'text-amber-400 border-amber-500/40'; 
+      }
+
+      scoreFill.classList.add(barColor);
+      scoreFill.style.setProperty('--target-w', pct + '%');
+      scoreCir.innerText = score;
+      scoreCir.className = `w-14 h-14 rounded-full flex items-center justify-center font-outfit font-black text-xl border-2 bg-slate-900 flex-shrink-0 ${scoreColor}`;
+
+      document.getElementById('moodSummaryText').innerText = report.mood_summary || '';
+
+      // ── Populate text fields ─────────────────────────────────────────────────
+      document.getElementById('summaryText').innerText = report.user_friendly_summary || '—';
+      document.getElementById('faceText').innerText    = report.face_analysis         || '—';
+      document.getElementById('speechText').innerText  = report.speech_analysis       || '—';
+
+      // ── Status banner ────────────────────────────────────────────────────────
+      const status = (report.overall_status || 'Moderate Concern').trim();
+      const sl     = status.toLowerCase();
+
+      const banner  = document.getElementById('statusBanner');
+      const icon    = document.getElementById('bannerIcon');
+      const title   = document.getElementById('bannerTitle');
+      const sub     = document.getElementById('bannerSubtitle');
+      const badge   = document.getElementById('bannerBadge');
+
+      // Clear old banner class
+      banner.className = "anim-1 border rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-5 md:gap-6";
+
+      let bcfg;
+      if (sl.includes('high') || sl.includes('concern')) {
+        bcfg = { cls:'banner-concern',  ic:'🚨', ibg:'bg-red-500/12 border-red-500/40',   tc:'text-red-400',    sc:'text-red-300/80',    bc:'bg-red-500/10 border-red-500/30 text-red-400',
+                 sub: "Our analysis detected elevated stress levels. Please be kind to yourself — support is available and things can improve.", bl:'High Concern' };
+      } else if (sl.includes('healthy')) {
+        bcfg = { cls:'banner-healthy',  ic:'✅', ibg:'bg-emerald-500/12 border-emerald-500/40', tc:'text-emerald-400', sc:'text-emerald-300/80', bc:'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
+                 sub: "Your wellness indicators look great! You're doing a wonderful job of taking care of yourself.", bl:'Healthy' };
+      } else {
+        bcfg = { cls:'banner-moderate', ic:'💛', ibg:'bg-amber-500/12 border-amber-500/40',   tc:'text-amber-400',  sc:'text-amber-300/80',  bc:'bg-amber-500/10 border-amber-500/30 text-amber-400',
+                 sub: "Some stress signals were detected — this is very common and completely understandable. Small steps can make a meaningful difference.", bl:'Moderate Concern' };
+      }
+
+      banner.classList.add(bcfg.cls);
+      icon.className   = `w-16 h-16 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0 shadow-lg border ${bcfg.ibg}`;
+      icon.innerText   = bcfg.ic;
+      title.className  = `font-outfit font-black text-3xl md:text-4xl tracking-tight leading-none mb-2 ${bcfg.tc}`;
+      title.innerText  = `Status: ${report.overall_status}`;
+      sub.className    = `text-sm md:text-base leading-relaxed max-w-2xl ${bcfg.sc}`;
+      sub.innerText    = bcfg.sub;
+      badge.className  = `px-5 py-2.5 border rounded-full font-mono text-xs font-bold uppercase tracking-wider flex-shrink-0 ${bcfg.bc}`;
+      badge.innerText  = bcfg.bl;
+
+      // ── Key concerns + strengths ─────────────────────────────────────────────
+      const concerns  = Array.isArray(report.key_concerns)    ? report.key_concerns    : [];
+      const strengths = Array.isArray(report.positive_factors) ? report.positive_factors : [];
+
+      const insightGrid = document.getElementById('insightGrid');
+      const concernsCard = document.getElementById('concernsCard');
+      const strengthsCard = document.getElementById('strengthsCard');
+      const concernsList = document.getElementById('concernsList');
+      const strengthsList = document.getElementById('strengthsList');
+
+      insightGrid.classList.add('hidden');
+      concernsCard.classList.add('hidden');
+      strengthsCard.classList.add('hidden');
+      concernsList.innerHTML = '';
+      strengthsList.innerHTML = '';
+
+      if (concerns.length > 0 || strengths.length > 0) {
+        insightGrid.classList.remove('hidden');
+      }
+
+      if (concerns.length > 0) {
+        concernsCard.classList.remove('hidden');
+        concerns.forEach(c => {
+          const li = document.createElement('li');
+          li.className = 'flex items-start gap-2 text-sm text-slate-300';
+          li.innerHTML = `<span class="text-red-400 mt-0.5 flex-shrink-0">•</span><span>${c}</span>`;
+          concernsList.appendChild(li);
+        });
+      }
+
+      if (strengths.length > 0) {
+        strengthsCard.classList.remove('hidden');
+        strengths.forEach(s => {
+          const li = document.createElement('li');
+          li.className = 'flex items-start gap-2 text-sm text-slate-300';
+          li.innerHTML = `<span class="text-emerald-400 mt-0.5 flex-shrink-0">✓</span><span>${s}</span>`;
+          strengthsList.appendChild(li);
+        });
+      }
+
+      // ── Shivangi Ma'am card (shown when professional help needed) ────────────
+      const cc = document.getElementById('consultCard');
+      cc.classList.add('hidden');
+      if (report.needs_professional_help) {
+        cc.classList.remove('hidden');
+        document.getElementById('consultMsg').innerText = report.professional_recommendation || '';
+      }
+
+      // Show success toast
+      setTimeout(() => showToast('toast'), 400);
+    }
+
+    // ── Show success toast ───────────────────────────────────────────────────
+    function showToast(id) {
+      const t = document.getElementById(id);
+      t.classList.remove('translate-x-[120%]', 'opacity-0', 'pointer-events-none');
+      t.classList.add('translate-x-0', 'opacity-100', 'slide-in');
+      setTimeout(() => {
+        t.classList.remove('translate-x-0', 'opacity-100', 'slide-in');
+        t.classList.add('translate-x-[120%]', 'opacity-0', 'pointer-events-none');
+      }, 4000);
+    }
+
+    function bookConsultation() {
+      showToast('bookingToast');
+    }
+
+    // ── Navigation ───────────────────────────────────────────────────────────
+    function startNewSession() {
+      localStorage.removeItem('emotionSenseReport');
+      window.location.href = '/';
+    }
+
+    // Start loading on window ready
+    window.addEventListener('load', initDashboard);
+  </script>
+</body>
+</html>
+
